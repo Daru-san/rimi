@@ -1,5 +1,5 @@
 {
-  description = "Rust development template";
+  description = "An image converter written in rust";
 
   inputs = {
     utils.url = "github:numtide/flake-utils";
