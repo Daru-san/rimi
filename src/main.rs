@@ -17,5 +17,5 @@ fn main() {
         .arg(args.source_image)
         .arg(args.final_image)
         .spawn()
-        .expect("ls command failed to start");
+        .expect("Image conversion failed, check if `convert` is in your PATH");
 }
