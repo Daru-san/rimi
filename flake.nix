@@ -3,28 +3,48 @@
 
   inputs = {
     utils.url = "github:numtide/flake-utils";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    utils,
-    ...
-  }:
-    utils.lib.eachDefaultSystem
-    (
-      system: let
-        pkgs = import nixpkgs {inherit system;};
+  outputs =
+    {
+      self,
+      nixpkgs,
+      utils,
+      ...
+    }:
+    utils.lib.eachDefaultSystem (
+      system:
+      let
+        pkgs = import nixpkgs { inherit system; };
         toolchain = pkgs.rustPlatform;
-      in rec
-      {
-        packages.default = toolchain.buildRustPackage {
-          pname = "r-pg";
-          version = "0.1.0";
-          src = ./.;
-          cargoLock.lockFile = ./Cargo.lock;
+        lib = nixpkgs.lib;
+      in
+      rec {
+        packages = {
+          rimi = toolchain.buildRustPackage {
+            pname = "rimi";
+
+            version = "0.1.0";
+
+            src = ./.;
+
+            cargoLock.lockFile = ./Cargo.lock;
+
+            meta = {
+              description = "Simple image manipulation tool.";
+              homepage = "htpps://github.com/Daru-san/rimi";
+              maintainers = [ lib.maintainers.daru-san ];
+              license = [ lib.licenses.mit ];
+              mainProgram = "rimi";
+            };
+          };
+          default = packages.rimi;
         };
-        apps.default = utils.lib.mkApp {drv = packages.default;};
+        apps = {
+          rimi = utils.lib.mkApp { drv = packages.default; };
+          default = apps.rimi;
+        };
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
             (with toolchain; [
