@@ -1,5 +1,6 @@
 use clap::Parser;
 use image;
+use std::path::Path;
 
 /// Simple in-development image manipulation tool
 #[derive(Parser, Debug)]
