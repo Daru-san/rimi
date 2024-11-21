@@ -46,4 +46,11 @@ fn main() {
         "File {} does not exist!",
         infile
     );
+    let mut image = Image::new(infile.to_string());
+    if !outfile.is_none() {
+        image.outpath = outfile
+            .clone()
+            .map(|s| s.to_string())
+            .expect("Unexpected error occured");
+    }
 }
