@@ -1,8 +1,8 @@
-use clap::Parser;
-use image;
+pub mod image;
 use std::path::Path;
 
 use clap::{Parser, Subcommand};
+use image::Image;
 /// Simple in-development image manipulation tool
 #[derive(Parser, Debug)]
 #[command(version,about,long_about = None)]
