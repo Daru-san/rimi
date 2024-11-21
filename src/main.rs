@@ -1,7 +1,7 @@
 use clap::Parser;
 use image;
 
-/// A simple image converter written in rust
+/// Simple in-development image manipulation tool
 #[derive(Parser, Debug)]
 #[command(version,about,long_about = None)]
 struct Args {
