@@ -2,6 +2,7 @@ use clap::Parser;
 use image;
 use std::path::Path;
 
+use clap::{Parser, Subcommand};
 /// Simple in-development image manipulation tool
 #[derive(Parser, Debug)]
 #[command(version,about,long_about = None)]
