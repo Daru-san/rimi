@@ -1,6 +1,6 @@
 [package]
-name = "r-pg"
 version = "0.1.0"
+name = "rimi"
 edition = "2021"
 
 [dependencies]
