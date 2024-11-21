@@ -38,4 +38,10 @@ enum Commands {
 }
 fn main() {
     let args = Args::parse();
+    let (infile, outfile) = (&args.filename, &args.output);
+    assert!(
+        Path::new(&args.filename).exists(),
+        "File {} does not exist!",
+        infile
+    );
 }
