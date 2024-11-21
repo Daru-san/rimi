@@ -1,21 +1,34 @@
-# r-pg
+# Rimi
 
-A rust program to convert images
-This is a little learning project for me and rust
+A simple image manipulation program for the terminal
+written in rust.
+
+Features coming as often as I can make them!
 
 ## Usage
 
 ```text
-Usage: r-pg --source-image <SOURCE_IMAGE> --final-image <FINAL_IMAGE>
+Simple in-development image manipulation tool
+
+Usage: rimi [OPTIONS] <FILENAME> [COMMAND]
+
+Commands:
+  convert  Convert an image
+  resize   Resize an image
+  help     Print this message or the help of the given subcommand(s)
+
+Arguments:
+  <FILENAME>  Input image filename
 
 Options:
-  -s, --source-image <SOURCE_IMAGE>
-  -f, --final-image <FINAL_IMAGE>
-  -h, --help                         Print help
-  -V, --version                      Print version
-```
+  -o, --output <OUTPUT>  Output image
+  -h, --help             Print help
+  -V, --version          Print version```
 
 ```bash
-# Specift a source and a final image, both with their respective file extension
-r-pg -s source-image.png -f final-image.jpg
+# Specift a source image and it's output format
+rimi FILENAME convert --format png
+
+# Resizing images
+rimi FILENAME.png resize -w 1200 -h 800
 ```
