@@ -5,13 +5,37 @@ use image;
 #[derive(Parser, Debug)]
 #[command(version,about,long_about = None)]
 struct Args {
-    /// File name of the source image
-    source: String,
+    #[command(subcommand)]
+    cmd: Option<Commands>,
 
-    /// File name of the final image after conversion with the file type
-    output: String,
+    /// Input image filename
+    filename: String,
+
+    /// Output image
+    #[clap(short, long,requires_all = ["filename"])]
+    output: Option<String>,
 }
 
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Convert an image
+    Convert {
+        /// Image format
+        #[clap(short, long)]
+        format: Option<String>,
+    },
+
+    /// Resize an image
+    Resize {
+        /// New width
+        #[clap(short, long)]
+        width: u32,
+
+        /// New height
+        #[clap(short, long)]
+        height: u32,
+    },
+}
 fn main() {
     let args = Args::parse();
     let img = image::open(args.source).unwrap();
