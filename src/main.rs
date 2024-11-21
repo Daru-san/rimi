@@ -38,6 +38,4 @@ enum Commands {
 }
 fn main() {
     let args = Args::parse();
-    let img = image::open(args.source).unwrap();
-    img.save(args.output).unwrap();
 }
