@@ -19,13 +19,14 @@
         pkgs = import nixpkgs { inherit system; };
         toolchain = pkgs.rustPlatform;
         lib = nixpkgs.lib;
+        cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
       in
       rec {
         packages = {
           rimi = toolchain.buildRustPackage {
             pname = "rimi";
 
-            version = "0.1.0";
+            version = cargoToml.package.version;
 
             src = ./.;
 
