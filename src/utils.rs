@@ -1,6 +1,5 @@
 use image::imageops::FilterType;
 use image::{self, DynamicImage, ImageFormat};
-use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::process::exit;
 
