@@ -56,6 +56,8 @@
             clippy
             rustfmt
             pkg-config
+            git-cliff
+            cargo-dist
           ];
           RUST_SRC_PATH = "${toolchain.rustLibSrc}";
         };
