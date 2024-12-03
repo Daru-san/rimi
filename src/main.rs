@@ -69,12 +69,10 @@ fn main() {
     match &args.cmd {
         Some(Commands::Convert { format }) => {
             if !format.is_none() {
-                image.format = format
-                    .clone()
-                    .map(|s| s.to_string())
-                    .expect("Unexpected error occured");
+                save_image_format(image, &output_file, format.clone());
+            } else {
+                save_image_format(image, &output_file, None);
             }
-            image.convert();
         }
         Some(Commands::Resize { width, height }) => {
             image.resize_dim(*width, *height);
