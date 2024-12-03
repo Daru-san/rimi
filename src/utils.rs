@@ -81,12 +81,12 @@ pub fn resize_image(image: &mut DynamicImage, dimensions: Dimensions, filter: St
         "CATMULLROM" => {
             filter_type = FilterType::CatmullRom;
         }
-        "LANCZOS3" => {
+        "LANCZOS" => {
             filter_type = FilterType::Lanczos3;
         }
         _ => {
             let _ = filter_type;
-            eprintln!("Please pick a valid filter out of: Nearest, Triangle, Gaussian, CatmullRom and Lanczos3");
+            eprintln!("Please pick a valid filter out of: Nearest, Triangle, Gaussian, CatmullRom and Lanczos");
             exit(0);
         }
     }
