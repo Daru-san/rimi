@@ -1,5 +1,6 @@
 use image::imageops::FilterType;
 use image::{self, DynamicImage, ImageFormat};
+use std::path::PathBuf;
 use std::process::exit;
 
 pub fn save_image(image: &DynamicImage, path: &str) {
