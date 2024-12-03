@@ -55,7 +55,6 @@ fn main() {
         infile
     );
 
-    let mut image = Image::new(infile.to_string());
     let output_file = if outfile.is_some() {
         let result: String = outfile.clone().map(|s| s.to_string()).unwrap();
         result
@@ -63,6 +62,7 @@ fn main() {
         infile.to_string()
     };
 
+    let mut image = image::open(infile).expect("Something happened");
     match &args.cmd {
         Some(Commands::Convert { format }) => {
             if !format.is_none() {
