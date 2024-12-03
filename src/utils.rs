@@ -1,11 +1,9 @@
+use dialoguer::Confirm;
 use image::imageops::FilterType;
 use image::{self, DynamicImage, ImageFormat};
 use std::path::PathBuf;
 use std::process::exit;
 
-pub fn save_image(image: &DynamicImage, path: &str) {
-    image.save(path).expect("File save error:");
-}
 
 pub fn save_image_format(image: &DynamicImage, out: &str, format: Option<String>, overwrite: bool) {
     let mut out_path = PathBuf::from(out);

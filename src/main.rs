@@ -53,6 +53,7 @@ fn main() {
     let args = Args::parse();
     let (infile, outfile) = (&args.filename, &args.output);
 
+    let do_overwrite = &args.overwrite;
     assert!(
         Path::new(infile).exists(),
         "File {} does not exist!",
@@ -70,15 +71,11 @@ fn main() {
 
     match &args.cmd {
         Some(Commands::Convert { format }) => {
-            if format.is_some() {
-                save_image_format(&image, &output_file, format.clone());
-            } else {
-                save_image(&image, &output_file);
-            }
+            save_image_format(&image, &output_file, format.clone(), *do_overwrite);
         }
-        Some(Commands::Resize { x, y, r#type }) => {
-            resize_image(&mut image, Dimensions { x: *x, y: *y }, r#type.to_string());
-            save_image(&image, &output_file);
+        Some(Commands::Resize { x, y, filter }) => {
+            resize_image(&mut image, Dimensions { x: *x, y: *y }, filter.to_string());
+            save_image_format(&image, &output_file, None, *do_overwrite);
         }
         None => {
             println!("Please choose a command");
