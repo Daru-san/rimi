@@ -55,6 +55,7 @@ fn main() {
     let (infile, outfile) = (&args.filename, &args.output);
 
     let do_overwrite = &args.overwrite;
+
     assert!(
         Path::new(infile).exists(),
         "File {} does not exist!",
@@ -79,7 +80,8 @@ fn main() {
             save_image_format(&image, &output_file, None, *do_overwrite);
         }
         None => {
-            println!("Please choose a command");
+            println!("Please select one of: resize or convert.");
+            println!("Use -h to get usage.")
         }
     }
 }
