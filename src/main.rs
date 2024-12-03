@@ -70,10 +70,11 @@ fn main() {
 
     match &args.cmd {
         Some(Commands::Convert { format }) => {
-            if !format.is_none() {
                 save_image_format(image, &output_file, format.clone());
+            if format.is_some() {
             } else {
                 save_image_format(image, &output_file, None);
+                save_image(&image, &output_file);
             }
         }
         Some(Commands::Resize { x, y, r#type }) => {
