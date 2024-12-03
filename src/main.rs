@@ -22,6 +22,7 @@ struct Args {
 #[derive(Subcommand, Debug)]
 enum Commands {
     /// Convert an image
+    #[clap(short_flag = 'c')]
     Convert {
         /// Image format
         #[clap(short, long)]
@@ -29,6 +30,7 @@ enum Commands {
     },
 
     /// Resize an image
+    #[clap(short_flag = 'r')]
     Resize {
         /// New width
         #[clap(short, long)]
