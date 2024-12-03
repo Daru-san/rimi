@@ -4,7 +4,6 @@ use image::{self, DynamicImage, ImageFormat};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 
-
 pub fn save_image_format(image: &DynamicImage, out: &str, format: Option<String>, overwrite: bool) {
     let mut out_path = PathBuf::from(out);
     let mut img_format = ImageFormat::Png;
@@ -93,6 +92,7 @@ pub fn resize_image(image: &mut DynamicImage, dimensions: Dimensions, filter: St
     }
     image.resize(dimensions.x, dimensions.y, filter_type);
 }
+
 fn check_overwrite(path: &Path) {
     if path.try_exists().expect("Error parsing output path") {
         let message = format!("Overwrite existing file: {:?}?", path.as_os_str().to_str());
