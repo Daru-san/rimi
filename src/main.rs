@@ -36,12 +36,15 @@ enum Commands {
     #[clap(short_flag = 'r')]
     Resize {
         /// New width
-        #[clap(short, long)]
-        width: u32,
+        #[clap(short)]
+        x: u32,
 
         /// New height
-        #[clap(short, long)]
-        height: u32,
+        #[clap(short)]
+        y: u32,
+
+        #[clap(short, long, default_value = "Nearest")]
+        r#type: String,
     },
 }
 
