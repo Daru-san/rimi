@@ -17,6 +17,7 @@ struct Args {
     /// Output image
     #[clap(short, long,requires_all = ["filename"])]
     output: Option<String>,
+
     /// Overwrite any existing files when saving the image
     #[clap(short = 'x', long, default_value = "false")]
     overwrite: bool,
@@ -65,7 +66,8 @@ fn main() {
         infile.to_string()
     };
 
-    let mut image = image::open(infile).expect("Something happened");
+    let mut image = image::open(infile).expect("Error parsing image file:");
+
     match &args.cmd {
         Some(Commands::Convert { format }) => {
             if !format.is_none() {
