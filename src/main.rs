@@ -1,8 +1,8 @@
-pub mod image;
+pub mod utils;
 use std::path::Path;
 
 use clap::{Parser, Subcommand};
-use image::Image;
+use utils::*;
 
 /// Simple in-development image manipulation tool
 #[derive(Parser, Debug)]
@@ -45,7 +45,7 @@ fn main() {
     let (infile, outfile) = (&args.filename, &args.output);
 
     assert!(
-        Path::new(&args.filename).exists(),
+        Path::new(infile).exists(),
         "File {} does not exist!",
         infile
     );
