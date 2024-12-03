@@ -1,5 +1,6 @@
 use image::imageops::FilterType;
 use image::{self, DynamicImage, ImageFormat};
+use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::process::exit;
 
@@ -8,9 +9,9 @@ pub fn save_image(image: &DynamicImage, path: &str) {
 }
 
 pub fn save_image_format(image: &DynamicImage, out: &str, format: Option<String>) {
-    let mut path = PathBuf::from(out);
+    let mut out_path = PathBuf::from(out);
+    let mut img_format = ImageFormat::Png;
     if format.is_some() {
-        let mut img_format = ImageFormat::Png;
         let local_format: &str = &format
             .map(|s| s.to_string())
             .expect("Something strange happened");
@@ -18,31 +19,31 @@ pub fn save_image_format(image: &DynamicImage, out: &str, format: Option<String>
         match local_format.to_uppercase().as_str() {
             "PNG" => {
                 img_format = ImageFormat::Png;
-                path.set_extension("png");
+                out_path.set_extension("png");
             }
             "JPG" => {
                 img_format = ImageFormat::Jpeg;
-                path.set_extension("jpg");
+                out_path.set_extension("jpg");
             }
             "JPEG" => {
                 img_format = ImageFormat::Jpeg;
-                path.set_extension("jpg");
+                out_path.set_extension("jpg");
             }
             "WEBP" => {
                 img_format = ImageFormat::WebP;
-                path.set_extension("webp");
+                out_path.set_extension("webp");
             }
             "ICO" => {
                 img_format = ImageFormat::Ico;
-                path.set_extension("ico");
+                out_path.set_extension("ico");
             }
             "GIF" => {
                 img_format = ImageFormat::Gif;
-                path.set_extension("gif");
+                out_path.set_extension("gif");
             }
             "AVIF" => {
                 img_format = ImageFormat::Avif;
-                path.set_extension("avif");
+                out_path.set_extension("avif");
             }
             _ => {
                 let _ = img_format;
@@ -50,12 +51,13 @@ pub fn save_image_format(image: &DynamicImage, out: &str, format: Option<String>
                 exit(0);
             }
         };
-        image
-            .save_with_format(path, img_format)
-            .expect("File save error:");
     } else {
-        image.save(path).expect("File save error:");
+        img_format = ImageFormat::from_path(&out_path)
+            .expect("Error detecting image format from output path: ");
     }
+    image
+        .save_with_format(&out_path, img_format)
+        .expect("File save error:");
 }
 
 #[derive(Debug, Default)]
