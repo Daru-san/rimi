@@ -70,10 +70,9 @@ fn main() {
 
     match &args.cmd {
         Some(Commands::Convert { format }) => {
-                save_image_format(image, &output_file, format.clone());
             if format.is_some() {
+                save_image_format(&image, &output_file, format.clone());
             } else {
-                save_image_format(image, &output_file, None);
                 save_image(&image, &output_file);
             }
         }

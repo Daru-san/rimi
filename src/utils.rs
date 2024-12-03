@@ -7,7 +7,7 @@ pub fn save_image(image: &DynamicImage, path: &str) {
     image.save(path).expect("File save error:");
 }
 
-pub fn save_image_format(image: DynamicImage, out: &str, format: Option<String>) {
+pub fn save_image_format(image: &DynamicImage, out: &str, format: Option<String>) {
     let mut path = PathBuf::from(out);
     if format.is_some() {
         let mut img_format = ImageFormat::Png;
