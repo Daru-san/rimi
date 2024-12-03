@@ -74,9 +74,9 @@ fn main() {
                 save_image_format(image, &output_file, None);
             }
         }
-        Some(Commands::Resize { width, height }) => {
-            image.resize_dim(*width, *height);
-            image.convert();
+        Some(Commands::Resize { x, y, r#type }) => {
+            resize_image(&mut image, Dimensions { x: *x, y: *y }, r#type.to_string());
+            save_image(&image, &output_file);
         }
         None => {
             println!("Please choose a command");
