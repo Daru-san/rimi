@@ -4,17 +4,17 @@ use std::path::Path;
 use clap::{Parser, Subcommand};
 use utils::*;
 
-/// Simple in-development image manipulation tool
+/// Simple image manipulation tool
 #[derive(Parser, Debug)]
 #[command(version,about,long_about = None)]
 struct Args {
     #[command(subcommand)]
     cmd: Option<Commands>,
 
-    /// Input image filename
+    /// Path to the input image
     filename: String,
 
-    /// Output image
+    /// Path where the saved image should be written
     #[clap(short, long,requires_all = ["filename"])]
     output: Option<String>,
 
@@ -28,7 +28,7 @@ enum Commands {
     /// Convert an image
     #[clap(short_flag = 'c')]
     Convert {
-        /// Image format
+        /// Format of the new image.
         #[clap(short, long)]
         format: Option<String>,
     },
@@ -44,8 +44,9 @@ enum Commands {
         #[clap(short)]
         y: u32,
 
+        /// Image Sampling filter
         #[clap(short, long, default_value = "Nearest")]
-        r#type: String,
+        filter: String,
     },
 }
 
