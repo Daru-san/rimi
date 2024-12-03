@@ -17,6 +17,9 @@ struct Args {
     /// Output image
     #[clap(short, long,requires_all = ["filename"])]
     output: Option<String>,
+    /// Overwrite any existing files when saving the image
+    #[clap(short = 'x', long, default_value = "false")]
+    overwrite: bool,
 }
 
 #[derive(Subcommand, Debug)]
