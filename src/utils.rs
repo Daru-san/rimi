@@ -7,7 +7,7 @@ pub fn save_image(image: &DynamicImage, path: &str) {
     image.save(path).expect("File save error:");
 }
 
-pub fn save_image_format(image: &DynamicImage, out: &str, format: Option<String>) {
+pub fn save_image_format(image: &DynamicImage, out: &str, format: Option<String>, overwrite: bool) {
     let mut out_path = PathBuf::from(out);
     let mut img_format = ImageFormat::Png;
     if format.is_some() {
@@ -54,6 +54,9 @@ pub fn save_image_format(image: &DynamicImage, out: &str, format: Option<String>
         img_format = ImageFormat::from_path(&out_path)
             .expect("Error detecting image format from output path: ");
     }
+    if !overwrite {
+        check_overwrite(&out_path);
+    }
     image
         .save_with_format(&out_path, img_format)
         .expect("File save error:");
@@ -91,4 +94,14 @@ pub fn resize_image(image: &mut DynamicImage, dimensions: Dimensions, filter: St
         }
     }
     image.resize(dimensions.x, dimensions.y, filter_type);
+}
+fn check_overwrite(path: &Path) {
+    if path.try_exists().expect("Error parsing output path") {
+        let message = format!("Overwrite existing file: {:?}?", path.as_os_str().to_str());
+        let confirm = Confirm::new().with_prompt(message).interact().unwrap();
+        if !confirm {
+            println!("Not overwriting existing file.");
+            exit(0);
+        }
+    }
 }
