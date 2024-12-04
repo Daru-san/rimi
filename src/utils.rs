@@ -4,15 +4,15 @@ use image::{self, DynamicImage, ImageFormat};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 
-pub fn save_image_format(image: &DynamicImage, out: &str, format: Option<String>, overwrite: bool) {
+pub fn save_image_format(image: &DynamicImage, out: &str, format: Option<&str>, overwrite: bool) {
     let mut out_path = PathBuf::from(out);
     let mut img_format = ImageFormat::Png;
     if format.is_some() {
-        let local_format: &str = &format
+        let format_identifier: &str = &format
             .map(|s| s.to_string())
-            .expect("Something strange happened");
+            .expect("Error occured parsing image format: ");
 
-        match local_format.to_uppercase().as_str() {
+        match format_identifier.to_uppercase().as_str() {
             "PNG" => {
                 img_format = ImageFormat::Png;
                 out_path.set_extension("png");

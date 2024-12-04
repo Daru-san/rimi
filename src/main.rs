@@ -76,7 +76,7 @@ fn main() {
 
     match &args.cmd {
         Some(Commands::Convert { format }) => {
-            save_image_format(&image, &output_file, format.clone(), *do_overwrite);
+            save_image_format(&image, &output_file, format.as_deref(), *do_overwrite);
         }
         Some(Commands::Resize { x, y, filter }) => {
             resize_image(&mut image, Dimensions { x: *x, y: *y }, filter.to_string());
