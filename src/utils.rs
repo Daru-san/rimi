@@ -90,7 +90,7 @@ pub fn resize_image(image: &mut DynamicImage, dimensions: Dimensions, filter: St
             exit(0);
         }
     }
-    image.resize(dimensions.x, dimensions.y, filter_type);
+    *image = image.resize(dimensions.x, dimensions.y, filter_type);
 }
 
 fn check_overwrite(path: &Path) {
