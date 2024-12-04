@@ -69,7 +69,10 @@ fn main() {
         infile.to_string()
     };
 
-    let mut image = image::open(infile).expect("Error parsing image file:");
+    let mut image = image::ImageReader::open(infile)
+        .expect("Error opening image: ")
+        .decode()
+        .expect("Error decoding image: ");
 
     match &args.cmd {
         Some(Commands::Convert { format }) => {
