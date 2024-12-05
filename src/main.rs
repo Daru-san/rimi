@@ -91,6 +91,17 @@ enum Commands {
         #[clap(short, long)]
         name_expr: Option<String>,
     },
+
+    /// Remove the background from an image
+    #[clap(short_flag = 't')]
+    Transparentize {
+        /// Path to the input image
+        image_file: PathBuf,
+
+        /// Path where the saved image should be written
+        #[clap(short, long, global = true)]
+        output: Option<String>,
+    },
 }
 
 fn main() {
@@ -163,6 +174,19 @@ fn main() {
                 save_image_format(&image, &paths[i], None, *do_overwrite);
                 i += 1;
             }
+        }
+        Some(Commands::Transparentize { image_file, output }) => {
+            let mut image = open_image(image_file.into());
+
+            let output_path = match output {
+                Some(e) => e.as_str(),
+                None => image_file
+                    .as_os_str()
+                    .to_str()
+                    .expect("Error parsing image path: "),
+            };
+            remove_background(&mut image);
+            save_image_format(&image, output_path, None, *do_overwrite);
         }
         None => {
             println!("Please select one of: resize or convert.");

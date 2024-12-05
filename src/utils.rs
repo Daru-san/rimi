@@ -103,6 +103,16 @@ pub fn resize_image(
     }
 }
 
+pub fn remove_background(image: &mut DynamicImage) {
+    let mut img = image.to_rgba16();
+    for p in img.pixels_mut() {
+        if p[0] == 255 && p[1] == 255 && p[2] == 255 {
+            p[3] = 0;
+        }
+    }
+    *image = DynamicImage::ImageRgba16(img);
+}
+
 fn check_overwrite(path: &Path) {
     if path.try_exists().expect("Error parsing output path") {
         let message = format!("Overwrite existing file: {:?}?", path.as_os_str().to_str());
