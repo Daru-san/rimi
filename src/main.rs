@@ -46,12 +46,10 @@ enum Commands {
         #[clap(short, long, global = true)]
         output: Option<String>,
         /// New width
-        #[clap(short)]
-        x: u32,
+        width: u32,
 
         /// New height
-        #[clap(short)]
-        y: u32,
+        height: u32,
 
         /// Image Sampling filter
         #[clap(short, long, default_value = "Nearest")]
@@ -114,7 +112,10 @@ fn main() {
             };
             resize_image(
                 &mut image,
-                Dimensions { x: *x, y: *y },
+                Dimensions {
+                    x: *width,
+                    y: *height,
+                },
                 filter.to_string(),
                 *preserve_aspect,
             );
