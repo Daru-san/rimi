@@ -4,8 +4,10 @@ mod open;
 mod utils;
 
 use std::path::PathBuf;
+
 use batch::*;
 use clap::{Parser, Subcommand};
+use image::ImageReader;
 use info::*;
 use open::open_image;
 use utils::*;
@@ -30,6 +32,7 @@ enum Commands {
         /// Format of the new image.
         #[clap(short, long)]
         format: Option<String>,
+
         /// Path to the input image
         image_file: PathBuf,
 
@@ -47,6 +50,7 @@ enum Commands {
         /// Path where the saved image should be written
         #[clap(short, long, global = true)]
         output: Option<String>,
+
         /// New width
         width: u32,
 
@@ -67,6 +71,7 @@ enum Commands {
     Info {
         #[clap(short, long)]
         short: bool,
+
         ///Path to the image file
         image_file: PathBuf,
     },
