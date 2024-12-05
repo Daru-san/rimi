@@ -1,4 +1,7 @@
+use std::fs::metadata;
 use std::path::PathBuf;
+
+use crate::utils::format_from_path;
 
 use image::{ColorType, DynamicImage};
 
@@ -10,9 +13,15 @@ struct ColorInfo {
 
 pub fn print_info(image: &DynamicImage, path: PathBuf, do_short: bool) {
     let (height, width) = (image.height(), image.width());
+    let format = format_from_path(path.clone());
+
+    let meta = metadata(&path).unwrap();
+    let size = meta.len();
 
     println!("Image file: {:?}", path.as_os_str());
+    println!("File size: {} bytes", size);
     println!("Dimensions: {}x{}", width, height);
+    println!("Format: {}", format.to_mime_type());
 
     let color_info = match image.color() {
         ColorType::L8 => ColorInfo {
@@ -72,8 +81,8 @@ pub fn print_info(image: &DynamicImage, path: PathBuf, do_short: bool) {
         },
     };
     if !do_short {
-        println!("Color type: {}", color_info.color_type);
-        println!("Bits: {}", color_info.bits);
+        println!("Color space: {}", color_info.color_type);
+        println!("Bit depth: {}", color_info.bits);
         println!("Alpha: {}", color_info.is_alpha);
     }
 }

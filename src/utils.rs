@@ -123,3 +123,21 @@ fn check_overwrite(path: &Path) {
         }
     }
 }
+
+pub fn format_from_path(path: PathBuf) -> ImageFormat {
+    let extension = path.extension().unwrap();
+    match extension.to_os_string().to_ascii_uppercase().to_str() {
+        Some("PNG") => ImageFormat::Png,
+        Some("JPG") => ImageFormat::Jpeg,
+        Some("ICO") => ImageFormat::Ico,
+        Some("WEBP") => ImageFormat::WebP,
+        Some("AVIF") => ImageFormat::Avif,
+        Some("GIF") => ImageFormat::Gif,
+        Some(_) => {
+            exit(0);
+        }
+        None => {
+            exit(0);
+        }
+    }
+}
