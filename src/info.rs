@@ -8,10 +8,10 @@ struct ColorInfo {
     is_alpha: bool,
 }
 
-pub fn print_info(image: &DynamicImage, path: &str, do_short: bool) {
+pub fn print_info(image: &DynamicImage, path: PathBuf, do_short: bool) {
     let (height, width) = (image.height(), image.width());
 
-    println!("Image file: {}", path);
+    println!("Image file: {:?}", path.as_os_str());
     println!("Dimensions: {}x{}", width, height);
 
     let color_info = match image.color() {
