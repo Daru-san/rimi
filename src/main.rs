@@ -2,6 +2,7 @@ pub mod utils;
 use std::path::Path;
 
 use clap::{Parser, Subcommand};
+use info::*;
 use utils::*;
 
 /// Simple image manipulation tool
@@ -47,7 +48,13 @@ enum Commands {
         /// Image Sampling filter
         #[clap(short, long, default_value = "Nearest")]
         filter: String,
+    /// SHow image information
+    #[clap(short_flag = 'i')]
+    Info {
+        #[clap(short, long)]
+        short: bool,
     },
+
 }
 
 fn main() {
@@ -81,6 +88,9 @@ fn main() {
         Some(Commands::Resize { x, y, filter }) => {
             resize_image(&mut image, Dimensions { x: *x, y: *y }, filter.to_string());
             save_image_format(&image, &output_file, None, *do_overwrite);
+        }
+        Some(Commands::Info { short }) => {
+            print_info(&image, infile, *short);
         }
         None => {
             println!("Please select one of: resize or convert.");
