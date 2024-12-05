@@ -65,7 +65,12 @@ pub struct Dimensions {
     pub y: u32,
 }
 
-pub fn resize_image(image: &mut DynamicImage, dimensions: Dimensions, filter: String) {
+pub fn resize_image(
+    image: &mut DynamicImage,
+    dimensions: Dimensions,
+    filter: String,
+    preserve_aspect: bool,
+) {
     let mut filter_type = FilterType::Nearest;
     let local_filter: &str = &filter;
     match local_filter.to_uppercase().as_str() {
@@ -90,7 +95,12 @@ pub fn resize_image(image: &mut DynamicImage, dimensions: Dimensions, filter: St
             exit(0);
         }
     }
-    *image = image.resize(dimensions.x, dimensions.y, filter_type);
+
+    *image = if preserve_aspect {
+        image.resize(dimensions.x, dimensions.y, filter_type)
+    } else {
+        image.resize_exact(dimensions.x, dimensions.y, filter_type)
+    }
 }
 
 fn check_overwrite(path: &Path) {

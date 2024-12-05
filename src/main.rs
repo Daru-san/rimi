@@ -48,6 +48,10 @@ enum Commands {
         /// Image Sampling filter
         #[clap(short, long, default_value = "Nearest")]
         filter: String,
+        /// Preserve aspect ratio
+        #[clap(short, long)]
+        preserve_aspect: bool,
+    },
     /// SHow image information
     #[clap(short_flag = 'i')]
     Info {
@@ -85,8 +89,18 @@ fn main() {
         Some(Commands::Convert { format }) => {
             save_image_format(&image, &output_file, format.as_deref(), *do_overwrite);
         }
-        Some(Commands::Resize { x, y, filter }) => {
-            resize_image(&mut image, Dimensions { x: *x, y: *y }, filter.to_string());
+        Some(Commands::Resize {
+            x,
+            y,
+            filter,
+            preserve_aspect,
+        }) => {
+            resize_image(
+                &mut image,
+                Dimensions { x: *x, y: *y },
+                filter.to_string(),
+                *preserve_aspect,
+            );
             save_image_format(&image, &output_file, None, *do_overwrite);
         }
         Some(Commands::Info { short }) => {
