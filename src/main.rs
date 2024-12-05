@@ -1,6 +1,9 @@
-pub mod utils;
+mod batch;
+mod info;
+mod utils;
 use std::path::Path;
 
+use batch::*;
 use clap::{Parser, Subcommand};
 use info::*;
 use utils::*;
@@ -59,6 +62,11 @@ enum Commands {
         short: bool,
     },
 
+    /// Batch image conversion
+    Batch {
+        #[clap(value_parser,num_args = 1..100,value_delimiter = ' ')]
+        images: Vec<String>,
+    },
 }
 
 fn main() {
@@ -105,6 +113,10 @@ fn main() {
         }
         Some(Commands::Info { short }) => {
             print_info(&image, infile, *short);
+        }
+        Some(Commands::Batch { images }) => {
+            let images_str = images.iter().map(|s| s.as_str()).collect();
+            check_batch(images_str);
         }
         None => {
             println!("Please select one of: resize or convert.");
