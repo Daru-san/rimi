@@ -51,11 +51,13 @@ enum Commands {
         /// Image Sampling filter
         #[clap(short, long, default_value = "Nearest")]
         filter: String,
+
         /// Preserve aspect ratio
         #[clap(short, long)]
         preserve_aspect: bool,
     },
-    /// SHow image information
+
+    /// Show image information
     #[clap(short_flag = 'i')]
     Info {
         #[clap(short, long)]
