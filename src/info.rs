@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use image::{ColorType, DynamicImage};
 
 struct ColorInfo {
@@ -10,7 +12,7 @@ pub fn print_info(image: &DynamicImage, path: &str, do_short: bool) {
     let (height, width) = (image.height(), image.width());
 
     println!("Image file: {}", path);
-    println!("Dimensions: {}x{}", height, width);
+    println!("Dimensions: {}x{}", width, height);
 
     let color_info = match image.color() {
         ColorType::L8 => ColorInfo {
