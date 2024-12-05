@@ -89,3 +89,28 @@ pub fn check_batch(images: Vec<&str>) {
         exit(0);
     }
 }
+
+pub fn create_paths(files: Vec<&str>, directory: &str, name_expr: Option<&str>) -> Vec<String> {
+    let mut paths: Vec<String> = Vec::new();
+
+    let mut i = 0;
+
+    for file in files {
+        i += 1;
+        let mut file_path = PathBuf::from(file);
+
+        if name_expr.is_some() {
+            let expr = name_expr.map(|s| s.to_string()).unwrap();
+            let ext_path = PathBuf::from(&expr);
+            let extension = ext_path.extension().unwrap();
+            let fname = format!("{}_{}", i, expr);
+            file_path.set_file_name(fname);
+            file_path.set_extension(extension);
+        }
+
+        let full_path = PathBuf::from(directory).join(file_path);
+        paths.push(full_path.to_string_lossy().to_string());
+    }
+
+    paths
+}

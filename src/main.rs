@@ -72,9 +72,19 @@ enum Commands {
     },
 
     /// Batch image conversion
+    #[clap(short_flag = 'b')]
     Batch {
-        #[clap(value_parser,num_args = 1..100,value_delimiter = ' ')]
+        /// Images to be converted
+        #[clap(value_parser,num_args = 1..100,value_delimiter = ' ',required = true)]
         images: Vec<String>,
+
+        /// Optional output directory where all output images will be saved
+        #[clap(short, long, default_value = ".")]
+        directory: String,
+
+        /// Expression that the output image names will follow
+        #[clap(short, long)]
+        name_expr: Option<String>,
     },
 }
 
@@ -90,6 +100,7 @@ fn main() {
             output,
         }) => {
             let image = open_image(image_file.into());
+
             let output_path = match output {
                 Some(e) => e.as_str(),
                 None => image_file
@@ -108,6 +119,7 @@ fn main() {
             output,
         }) => {
             let mut image = open_image(image_file.into());
+
             let output_path = match output {
                 Some(e) => e.as_str(),
                 None => image_file
@@ -130,9 +142,22 @@ fn main() {
             let image = open_image(image_file.into());
             print_info(&image, image_file.to_path_buf(), *short);
         }
-        Some(Commands::Batch { images }) => {
-            let images_str = images.iter().map(|s| s.as_str()).collect();
-            check_batch(images_str);
+        Some(Commands::Batch {
+            images,
+            directory,
+            name_expr,
+        }) => {
+            let images_str: Vec<&str> = images.iter().map(|s| s.as_str()).collect();
+            check_batch(images_str.clone());
+            let paths = create_paths(images_str.clone(), directory.as_str(), name_expr.as_deref());
+
+            let mut i = 0;
+            #[allow(clippy::explicit_counter_loop)]
+            for image_str in images {
+                let image = ImageReader::open(image_str).unwrap().decode().unwrap();
+                save_image_format(&image, &paths[i], None, *do_overwrite);
+                i += 1;
+            }
         }
         None => {
             println!("Please select one of: resize or convert.");
