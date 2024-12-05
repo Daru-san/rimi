@@ -1,11 +1,13 @@
 mod batch;
 mod info;
+mod open;
 mod utils;
-use std::path::Path;
 
+use std::path::PathBuf;
 use batch::*;
 use clap::{Parser, Subcommand};
 use info::*;
+use open::open_image;
 use utils::*;
 
 /// Simple image manipulation tool
@@ -87,6 +89,7 @@ fn main() {
             image_file,
             output,
         }) => {
+            let image = open_image(image_file.into());
             let output_path = match output {
                 Some(e) => e.as_str(),
                 None => image_file
@@ -97,12 +100,14 @@ fn main() {
             save_image_format(&image, output_path, format.as_deref(), *do_overwrite);
         }
         Some(Commands::Resize {
-            x,
-            y,
+            width,
+            height,
             filter,
             preserve_aspect,
             image_file,
+            output,
         }) => {
+            let mut image = open_image(image_file.into());
             let output_path = match output {
                 Some(e) => e.as_str(),
                 None => image_file
