@@ -7,7 +7,7 @@ mod utils;
 use std::path::PathBuf;
 
 use batch::*;
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 use color::ColorInfo;
 use image::ImageReader;
 use info::*;
@@ -105,6 +105,7 @@ enum Commands {
         output: Option<String>,
     },
 
+    /// Modify the image color type
     Recolor {
         /// Path to the input image
         image_file: PathBuf,
@@ -116,6 +117,13 @@ enum Commands {
         /// Color type
         #[clap(short, long)]
         color_type: ColorInfo,
+    },
+
+    /// Print shell completions
+    Completions {
+        /// Shell to print completions for
+        #[clap(value_enum)]
+        shell: clap_complete::Shell,
     },
 }
 
@@ -226,6 +234,12 @@ fn main() {
             };
             color_type.convert_image(&mut image);
             save_image_format(&image, output_path, None, *do_overwrite)
+        }
+        Some(Commands::Completions { shell }) => {
+            use clap_complete::generate;
+            use std::io::stdout;
+
+            generate(*shell, &mut Args::command(), "rimi", &mut stdout());
         }
         None => {
             println!("Please select one of: resize or convert.");
