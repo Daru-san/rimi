@@ -138,26 +138,25 @@ impl FromStr for ColorInfo {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let col_type;
-        let bit_depth;
-        let is_alpha = s.contains("alpha");
-
-        if s.contains("luma") {
-            col_type = "Luminant";
+        let col_type = if s.contains("luma") {
+            "Luminant"
         } else if s.to_lowercase().contains("rgb") {
-            col_type = "RGB";
+            "RGB"
         } else {
-            col_type = "Unknown";
-        }
-        if s.contains("8") {
-            bit_depth = 8;
+            return Err("Invalid color type".to_string());
+        };
+
+        let bit_depth = if s.contains("8") {
+            8
         } else if s.contains("16") {
-            bit_depth = 16
+            16
         } else if s.contains("32") {
-            bit_depth = 32;
+            32
         } else {
-            bit_depth = 0;
-        }
+            return Err("Invalid bit depth".to_string());
+        };
+
+        let is_alpha = s.contains("alpha");
 
         Ok(ColorInfo {
             color_type: col_type.to_string(),
