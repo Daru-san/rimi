@@ -60,3 +60,35 @@ pub fn open_image(image_path: PathBuf) -> Result<DynamicImage, Box<dyn Error>> {
         }
     }
 }
+
+pub fn save_image_format(
+    image: &DynamicImage,
+    out: &str,
+    format: Option<&str>,
+    overwrite: bool,
+) -> Result<(), Box<dyn Error>> {
+    let mut out_path = PathBuf::from(out);
+    let mut img_format = ImageFormat::Png;
+    if format.is_some() {
+        match format {
+            Some(s) => {
+                img_format = ImageFormat::from_extension(s)
+                    .expect("Error obtaining image format from extension: ");
+                let formats = img_format.extensions_str();
+
+                out_path.set_extension(formats[0]);
+            }
+            _ => {
+                let _ = img_format;
+                return Err(format!("Please choose a valid image format.").into());
+            }
+        };
+    } else {
+        img_format = ImageFormat::from_path(&out_path)?;
+    }
+    if !overwrite {
+        check_overwrite(&out_path);
+    }
+    image.save_with_format(&out_path, img_format)?;
+    Ok(())
+}
