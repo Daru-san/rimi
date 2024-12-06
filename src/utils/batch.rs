@@ -1,6 +1,6 @@
 use image::ImageReader;
 use std::io::ErrorKind;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::exit;
 
 pub fn check_batch(images: Vec<&str>) {
@@ -30,27 +30,44 @@ pub fn check_batch(images: Vec<&str>) {
     }
 }
 
-pub fn create_paths(files: Vec<&str>, directory: &str, name_expr: Option<&str>) -> Vec<String> {
+pub fn create_paths(
+    files: Vec<&str>,
+    directory: &str,
+    name_expr: Option<&str>,
+) -> Result<Vec<String>, String> {
     let mut paths: Vec<String> = Vec::new();
+    let dest_dir = Path::new(directory);
 
-    let mut i = 0;
-
-    for file in files {
-        i += 1;
-        let mut file_path = PathBuf::from(file);
-
-        if name_expr.is_some() {
-            let expr = name_expr.map(|s| s.to_string()).unwrap();
-            let ext_path = PathBuf::from(&expr);
-            let extension = ext_path.extension().unwrap();
-            let fname = format!("{}_{}", i, expr);
-            file_path.set_file_name(fname);
-            file_path.set_extension(extension);
-        }
-
-        let full_path = PathBuf::from(directory).join(file_path);
-        paths.push(full_path.to_string_lossy().to_string());
+    if !dest_dir.is_dir() {
+        return Err(format!(
+            "Directory {:?} does not exist.",
+            dest_dir.as_os_str()
+        ));
     }
 
-    paths
+    for (index, file) in files.iter().enumerate() {
+        let mut path = dest_dir.join(file);
+
+        let file_name = match name_expr {
+            Some(expr) => {
+                let expr_path = Path::new(expr);
+                if let Some(extension) = expr_path.extension() {
+                    let new_name =
+                        format!("{}_{}.{}", expr, index + 2, extension.to_str().unwrap());
+                    new_name
+                } else {
+                    return Err(format!(
+                        "File expression {} does not have an extension.",
+                        expr
+                    ));
+                }
+            }
+            None => path.file_name().unwrap().to_str().unwrap().to_string(),
+        };
+        path.set_file_name(file_name);
+
+        paths.push(path.to_string_lossy().to_string());
+    }
+
+    Ok(paths)
 }
