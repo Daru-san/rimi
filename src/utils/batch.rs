@@ -53,7 +53,7 @@ pub fn create_paths(
                 let expr_path = Path::new(expr);
                 if let Some(extension) = expr_path.extension() {
                     let new_name =
-                        format!("{}_{}.{}", expr, index + 2, extension.to_str().unwrap());
+                        format!("{}_{}.{}", expr, index + 1, extension.to_str().unwrap());
                     new_name
                 } else {
                     return Err(format!(
