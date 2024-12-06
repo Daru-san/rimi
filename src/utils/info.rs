@@ -3,7 +3,7 @@ use image::{DynamicImage, ImageFormat};
 use std::fs::metadata;
 use std::path::PathBuf;
 
-
+// TODO: Pretty displaying
 pub fn print_info(image: &DynamicImage, path: PathBuf, do_short: bool) {
     let (height, width) = (image.height(), image.width());
     let format = ImageFormat::from_path(&path).expect("Error decoding image format: ");

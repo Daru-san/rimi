@@ -1,0 +1,22 @@
+use crate::{app, image::open_image, utils::info::print_info};
+use clap::Parser;
+use std::error::Error;
+use std::path::PathBuf;
+
+#[derive(Parser)]
+pub struct InfoArgs {
+    /// Shorted information
+    #[clap(short, long)]
+    short: bool,
+
+    ///Path to the image file
+    image_file: PathBuf,
+}
+
+impl InfoArgs {
+    fn run(&self, _app_args: app::Args) -> Result<(), Box<dyn Error>> {
+        let image = open_image(self.image_file.clone())?;
+        print_info(&image, self.image_file.to_path_buf(), self.short);
+        Ok(())
+    }
+}
