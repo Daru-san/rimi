@@ -1,8 +1,10 @@
 use dialoguer::Confirm;
 use image::imageops::FilterType;
-use image::{self, DynamicImage, ImageFormat};
+use image::{self, ColorType, DynamicImage, ImageFormat};
 use std::path::{Path, PathBuf};
 use std::process::exit;
+
+use crate::color::ColorInfo;
 
 pub fn save_image_format(image: &DynamicImage, out: &str, format: Option<&str>, overwrite: bool) {
     let mut out_path = PathBuf::from(out);
@@ -79,13 +81,33 @@ pub fn resize_image(
 }
 
 pub fn remove_background(image: &mut DynamicImage) {
-    let mut img = image.to_rgba16();
-    for p in img.pixels_mut() {
-        if p[0] == 255 && p[1] == 255 && p[2] == 255 {
-            p[3] = 0;
+    let color_info = ColorInfo::from_image(image);
+
+    if color_info.bit_depth == 8 {
+        let mut img = image.to_rgba8();
+        for p in img.pixels_mut() {
+            if p[0] == 255 && p[1] == 255 && p[2] == 255 {
+                p[3] = 0;
+            }
         }
+        *image = DynamicImage::ImageRgba8(img);
+    } else if color_info.bit_depth == 16 {
+        let mut img = image.to_rgba16();
+        for p in img.pixels_mut() {
+            if p[0] == 255 && p[1] == 255 && p[2] == 255 {
+                p[3] = 0;
+            }
+        }
+        *image = DynamicImage::ImageRgba16(img);
+    } else {
+        let mut img = image.to_rgba32f();
+        for p in img.pixels_mut() {
+            if p[0] == 255.0 && p[1] == 255.0 && p[2] == 255.0 {
+                p[3] = 0.0;
+            }
+        }
+        *image = DynamicImage::ImageRgba32F(img);
     }
-    *image = DynamicImage::ImageRgba16(img);
 }
 
 fn check_overwrite(path: &Path) {
