@@ -14,22 +14,22 @@ impl ColorInfo {
         match image.color() {
             ColorType::L8 => ColorInfo {
                 bit_depth: 8,
-                color_type: "Luminant".to_string(),
+                color_type: "Luma".to_string(),
                 is_alpha: false,
             },
             ColorType::La8 => ColorInfo {
                 bit_depth: 8,
-                color_type: "Luminant".to_string(),
+                color_type: "Luma".to_string(),
                 is_alpha: true,
             },
             ColorType::L16 => ColorInfo {
                 bit_depth: 16,
-                color_type: "Luminant".to_string(),
+                color_type: "Luma".to_string(),
                 is_alpha: true,
             },
             ColorType::La16 => ColorInfo {
                 bit_depth: 16,
-                color_type: "Luminant".to_string(),
+                color_type: "Luma".to_string(),
                 is_alpha: true,
             },
             ColorType::Rgb8 => ColorInfo {
@@ -112,7 +112,7 @@ impl ColorInfo {
                 }
                 _ => ColorType::Rgb8,
             },
-            "Luminant" => match self.bit_depth {
+            "Luma" => match self.bit_depth {
                 8 => {
                     if self.is_alpha {
                         ColorType::La8
@@ -139,7 +139,7 @@ impl FromStr for ColorInfo {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let col_type = if s.contains("luma") {
-            "Luminant"
+            "Luma"
         } else if s.to_lowercase().contains("rgb") {
             "RGB"
         } else {
