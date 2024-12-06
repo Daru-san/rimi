@@ -87,50 +87,50 @@ impl ColorInfo {
         *image = colored_image;
     }
     fn get_color_type(&self) -> ColorType {
-        let mut result = ColorType::Rgb8;
         match self.color_type.as_str() {
-            "RGB" => {
-                if self.bit_depth == 8 {
-                    result = if self.is_alpha {
+            "RGB" => match self.bit_depth {
+                8 => {
+                    if self.is_alpha {
                         ColorType::Rgba8
                     } else {
                         ColorType::Rgb8
-                    };
+                    }
                 }
-                if self.bit_depth == 16 {
-                    result = if self.is_alpha {
+                16 => {
+                    if self.is_alpha {
                         ColorType::Rgba16
                     } else {
                         ColorType::Rgb16
-                    };
+                    }
                 }
-                if self.bit_depth == 32 {
-                    result = if self.is_alpha {
+                32 => {
+                    if self.is_alpha {
                         ColorType::Rgba32F
                     } else {
                         ColorType::Rgb32F
-                    };
+                    }
                 }
-            }
-            "Luminant" => {
-                if self.bit_depth == 8 {
-                    result = if self.is_alpha {
+                _ => ColorType::Rgb8,
+            },
+            "Luminant" => match self.bit_depth {
+                8 => {
+                    if self.is_alpha {
                         ColorType::La8
                     } else {
                         ColorType::L8
                     }
                 }
-                if self.bit_depth == 16 {
-                    result = if self.is_alpha {
+                16 => {
+                    if self.is_alpha {
                         ColorType::La16
                     } else {
                         ColorType::L16
                     }
                 }
-            }
-            &_ => {}
+                _ => ColorType::L8,
+            },
+            _ => ColorType::Rgb8,
         }
-        result
     }
 }
 
