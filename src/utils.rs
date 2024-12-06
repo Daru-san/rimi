@@ -1,6 +1,6 @@
 use dialoguer::Confirm;
 use image::imageops::FilterType;
-use image::{self, ColorType, DynamicImage, ImageFormat};
+use image::{self, DynamicImage, ImageFormat};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 

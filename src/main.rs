@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use batch::*;
 use clap::{Parser, Subcommand};
 use color::ColorInfo;
-use image::{ColorType, ImageReader};
+use image::ImageReader;
 use info::*;
 use open::open_image;
 use utils::*;
