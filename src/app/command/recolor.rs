@@ -24,7 +24,7 @@ pub struct RecolorArgs {
 }
 
 impl RecolorArgs {
-    pub fn run(&self, app_args: app::Args) -> Result<(), Box<dyn Error>> {
+    pub fn run(&self, app_args: &app::GlobalArgs) -> Result<(), Box<dyn Error>> {
         let mut image = open_image(self.image_file.clone())?;
 
         let output_path = match &self.output {

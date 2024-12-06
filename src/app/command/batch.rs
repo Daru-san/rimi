@@ -21,7 +21,7 @@ pub struct BatchArgs {
 
 //TODO: Add progress indicators
 impl BatchArgs {
-    pub fn run(&self, app_args: &crate::app::Args) -> Result<(), Box<dyn Error>> {
+    pub fn run(&self, app_args: &crate::app::GlobalArgs) -> Result<(), Box<dyn Error>> {
         let images_str: Vec<&str> = self.images.iter().map(|s| s.as_str()).collect();
         check_batch(images_str.clone());
         let paths = create_paths(

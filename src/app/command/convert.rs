@@ -4,7 +4,7 @@ use std::error::Error;
 use std::path::PathBuf;
 
 #[derive(Parser)]
-struct ConvertArgs {
+pub struct ConvertArgs {
     /// Format of the new image.
     #[clap(short, long)]
     format: Option<String>,
@@ -18,7 +18,7 @@ struct ConvertArgs {
 }
 
 impl ConvertArgs {
-    pub fn run(&self, app_args: crate::app::Args) -> Result<(), Box<dyn Error>> {
+    pub fn run(&self, app_args: &crate::app::GlobalArgs) -> Result<(), Box<dyn Error>> {
         let image = open_image(self.image_file.clone())?;
 
         let output_path = match &self.output {

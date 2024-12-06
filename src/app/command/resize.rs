@@ -1,4 +1,4 @@
-use crate::app::Args;
+use crate::app;
 use crate::utils::image::{open_image, resize_image, save_image_format, Dimensions};
 use clap::Parser;
 use std::error::Error;
@@ -29,7 +29,7 @@ pub struct ResizeArgs {
 }
 
 impl ResizeArgs {
-    pub fn run(&self, app_args: Args) -> Result<(), Box<dyn Error>> {
+    pub fn run(&self, app_args: &app::GlobalArgs) -> Result<(), Box<dyn Error>> {
         let mut image = open_image(self.image_file.clone())?;
 
         let output_path = match &self.output {
@@ -48,8 +48,8 @@ impl ResizeArgs {
             },
             self.filter.to_string(),
             self.preserve_aspect,
-        );
-        save_image_format(&image, output_path, None, app_args.overwrite);
+        )?;
+        save_image_format(&image, output_path, None, app_args.overwrite)?;
         Ok(())
     }
 }
