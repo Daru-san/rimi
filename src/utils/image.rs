@@ -1,4 +1,4 @@
-use crate::color::ColorInfo;
+use super::color::ColorInfo;
 use dialoguer::Confirm;
 use image::imageops::FilterType;
 use image::{self, error::LimitErrorKind, DynamicImage, ImageError, ImageFormat, ImageReader};

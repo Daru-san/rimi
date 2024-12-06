@@ -1,4 +1,4 @@
-use crate::color::ColorInfo;
+use super::color::ColorInfo;
 use image::{DynamicImage, ImageFormat};
 use std::fs::metadata;
 use std::path::PathBuf;
