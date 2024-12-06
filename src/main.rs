@@ -1,4 +1,5 @@
 mod batch;
+mod color;
 mod info;
 mod open;
 mod utils;
@@ -7,7 +8,8 @@ use std::path::PathBuf;
 
 use batch::*;
 use clap::{Parser, Subcommand};
-use image::ImageReader;
+use color::ColorInfo;
+use image::{ColorType, ImageReader};
 use info::*;
 use open::open_image;
 use utils::*;
@@ -102,6 +104,19 @@ enum Commands {
         #[clap(short, long, global = true)]
         output: Option<String>,
     },
+
+    Recolor {
+        /// Path to the input image
+        image_file: PathBuf,
+
+        /// Path where the saved image should be written
+        #[clap(short, long, global = true)]
+        output: Option<String>,
+
+        /// Color type
+        #[clap(short, long)]
+        color_type: ColorInfo,
+    },
 }
 
 fn main() {
@@ -187,6 +202,23 @@ fn main() {
             };
             remove_background(&mut image);
             save_image_format(&image, output_path, None, *do_overwrite);
+        }
+        Some(Commands::Recolor {
+            image_file,
+            output,
+            color_type,
+        }) => {
+            let mut image = open_image(image_file.into());
+
+            let output_path = match output {
+                Some(e) => e.as_str(),
+                None => image_file
+                    .as_os_str()
+                    .to_str()
+                    .expect("Error parsing image path: "),
+            };
+            color_type.convert_image(&mut image);
+            save_image_format(&image, output_path, None, *do_overwrite)
         }
         None => {
             println!("Please select one of: resize or convert.");
