@@ -242,8 +242,8 @@ fn main() {
             generate(*shell, &mut Args::command(), "rimi", &mut stdout());
         }
         None => {
-            println!("Please select one of: resize or convert.");
-            println!("Use -h to get usage.")
+            let mut cmd = Args::command();
+            cmd.print_help().unwrap();
         }
     }
 }
