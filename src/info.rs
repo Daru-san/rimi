@@ -3,7 +3,6 @@ use image::{DynamicImage, ImageFormat};
 use std::fs::metadata;
 use std::path::PathBuf;
 
-use image::{ColorType, DynamicImage};
 
 pub fn print_info(image: &DynamicImage, path: PathBuf, do_short: bool) {
     let (height, width) = (image.height(), image.width());
