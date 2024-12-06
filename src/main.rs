@@ -191,6 +191,9 @@ fn main() {
             }
         }
         Some(Commands::Transparentize { image_file, output }) => {
+            use image::ImageFormat;
+            use std::process::exit;
+
             let mut image = open_image(image_file.into());
 
             let output_path = match output {
@@ -200,6 +203,10 @@ fn main() {
                     .to_str()
                     .expect("Error parsing image path: "),
             };
+            if ImageFormat::from_path(image_file).unwrap() != ImageFormat::Png {
+                eprintln!("{:?}: Image must be a png file.", image_file.as_os_str());
+                exit(0);
+            }
             remove_background(&mut image);
             save_image_format(&image, output_path, None, *do_overwrite);
         }
