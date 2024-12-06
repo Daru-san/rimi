@@ -28,14 +28,11 @@ impl BatchArgs {
             images_str.clone(),
             self.directory.as_str(),
             self.name_expr.as_deref(),
-        );
+        )?;
 
-        let mut i = 0;
-        #[allow(clippy::explicit_counter_loop)]
-        for image_str in &self.images {
+        for (index, image_str) in self.images.iter().enumerate() {
             let image = ImageReader::open(image_str).unwrap().decode()?;
-            save_image_format(&image, &paths[i], None, app_args.overwrite)?;
-            i += 1;
+            save_image_format(&image, &paths[index], None, app_args.overwrite)?;
         }
         Ok(())
     }
