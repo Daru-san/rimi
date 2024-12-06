@@ -13,7 +13,7 @@ struct ColorInfo {
 
 pub fn print_info(image: &DynamicImage, path: PathBuf, do_short: bool) {
     let (height, width) = (image.height(), image.width());
-    let format = format_from_path(path.clone());
+    let format = ImageFormat::from_path(&path).expect("Error decoding image format: ");
 
     let meta = metadata(&path).unwrap();
     let size = meta.len();
