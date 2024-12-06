@@ -1,5 +1,7 @@
 use crate::utils::batch::*;
+use crate::utils::image::save_image_format;
 use clap::Parser;
+use image::ImageReader;
 use std::error::Error;
 
 #[derive(Parser)]
@@ -17,6 +19,7 @@ pub struct BatchArgs {
     name_expr: Option<String>,
 }
 
+//TODO: Add progress indicators
 impl BatchArgs {
     pub fn run(&self, app_args: &crate::app::Args) -> Result<(), Box<dyn Error>> {
         let images_str: Vec<&str> = self.images.iter().map(|s| s.as_str()).collect();
@@ -30,8 +33,8 @@ impl BatchArgs {
         let mut i = 0;
         #[allow(clippy::explicit_counter_loop)]
         for image_str in &self.images {
-            let image = ImageReader::open(image_str).unwrap().decode().unwrap();
-            save_image_format(&image, &paths[i], None, app_args.overwrite);
+            let image = ImageReader::open(image_str).unwrap().decode()?;
+            save_image_format(&image, &paths[i], None, app_args.overwrite)?;
             i += 1;
         }
         Ok(())
