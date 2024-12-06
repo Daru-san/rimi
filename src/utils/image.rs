@@ -1,14 +1,11 @@
+use crate::color::ColorInfo;
 use dialoguer::Confirm;
 use image::imageops::FilterType;
-use image::{self, DynamicImage, ImageFormat};
+use image::{self, error::LimitErrorKind, DynamicImage, ImageError, ImageFormat, ImageReader};
 use std::error::Error;
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::exit;
-
-use crate::color::ColorInfo;
-
-use image::{error::LimitErrorKind, ImageError, ImageReader};
-use std::io::ErrorKind;
 
 pub fn open_image(image_path: PathBuf) -> Result<DynamicImage, Box<dyn Error>> {
     let path = image_path.clone();
@@ -92,6 +89,13 @@ pub fn save_image_format(
     image.save_with_format(&out_path, img_format)?;
     Ok(())
 }
+
+#[derive(Debug, Default)]
+pub struct Dimensions {
+    pub x: u32,
+    pub y: u32,
+}
+
 pub fn resize_image(
     image: &mut DynamicImage,
     dimensions: Dimensions,
@@ -129,4 +133,45 @@ pub fn resize_image(
     };
 
     Ok(())
+}
+
+pub fn remove_background(image: &mut DynamicImage) {
+    let color_info = ColorInfo::from_image(image);
+
+    if color_info.bit_depth == 8 {
+        let mut img = image.to_rgba8();
+        for p in img.pixels_mut() {
+            if p[0] == 255 && p[1] == 255 && p[2] == 255 {
+                p[3] = 0;
+            }
+        }
+        *image = DynamicImage::ImageRgba8(img);
+    } else if color_info.bit_depth == 16 {
+        let mut img = image.to_rgba16();
+        for p in img.pixels_mut() {
+            if p[0] == 255 && p[1] == 255 && p[2] == 255 {
+                p[3] = 0;
+            }
+        }
+        *image = DynamicImage::ImageRgba16(img);
+    } else {
+        let mut img = image.to_rgba32f();
+        for p in img.pixels_mut() {
+            if p[0] == 255.0 && p[1] == 255.0 && p[2] == 255.0 {
+                p[3] = 0.0;
+            }
+        }
+        *image = DynamicImage::ImageRgba32F(img);
+    }
+}
+
+fn check_overwrite(path: &Path) {
+    if path.try_exists().expect("Error parsing output path") {
+        let message = format!("Overwrite existing file: {:?}?", path.as_os_str().to_str());
+        let confirm = Confirm::new().with_prompt(message).interact().unwrap();
+        if !confirm {
+            println!("Not overwriting existing file.");
+            exit(0);
+        }
+    }
 }
