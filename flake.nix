@@ -30,6 +30,17 @@
 
             src = ./.;
 
+            nativeBuildInputs = [
+              pkgs.installShellFiles
+            ];
+
+            postInstall = lib.optionalString (pkgs.stdenv.buildPlatform.canExecute pkgs.stdenv.hostPlatform) ''
+              installShellCompletion --cmd rimi \
+                --bash <($out/bin/rimi completions bash) \
+                --fish <($out/bin/rimi completions fish) \
+                --zsh <($out/bin/rimi completions zsh) \
+            '';
+
             cargoLock.lockFile = ./Cargo.lock;
 
             meta = {
