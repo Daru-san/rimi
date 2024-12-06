@@ -9,6 +9,7 @@ repository = "https://github.com/Daru-san/rimi"
 [dependencies]
 clap = { version = "4.0", features = ["derive"] }
 clap_complete = "4.5.38"
+clap_complete_nushell = "4.5.4"
 dialoguer = "0.11.0"
 image = "0.25.5"
 
