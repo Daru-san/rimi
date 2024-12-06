@@ -8,42 +8,17 @@ pub fn save_image_format(image: &DynamicImage, out: &str, format: Option<&str>, 
     let mut out_path = PathBuf::from(out);
     let mut img_format = ImageFormat::Png;
     if format.is_some() {
-        let format_identifier: &str = &format
-            .map(|s| s.to_string())
-            .expect("Error occured parsing image format: ");
+        match format {
+            Some(s) => {
+                img_format = ImageFormat::from_extension(s)
+                    .expect("Error obtaining image format from extension: ");
+                let formats = img_format.extensions_str();
 
-        match format_identifier.to_uppercase().as_str() {
-            "PNG" => {
-                img_format = ImageFormat::Png;
-                out_path.set_extension("png");
-            }
-            "JPG" => {
-                img_format = ImageFormat::Jpeg;
-                out_path.set_extension("jpg");
-            }
-            "JPEG" => {
-                img_format = ImageFormat::Jpeg;
-                out_path.set_extension("jpg");
-            }
-            "WEBP" => {
-                img_format = ImageFormat::WebP;
-                out_path.set_extension("webp");
-            }
-            "ICO" => {
-                img_format = ImageFormat::Ico;
-                out_path.set_extension("ico");
-            }
-            "GIF" => {
-                img_format = ImageFormat::Gif;
-                out_path.set_extension("gif");
-            }
-            "AVIF" => {
-                img_format = ImageFormat::Avif;
-                out_path.set_extension("avif");
+                out_path.set_extension(formats[0]);
             }
             _ => {
                 let _ = img_format;
-                eprintln!("Please choose one of png, jpg, jpeg, webp, ico, gif or avif.");
+                eprintln!("Please choose a valid image format.");
                 exit(0);
             }
         };
