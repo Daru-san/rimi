@@ -92,3 +92,41 @@ pub fn save_image_format(
     image.save_with_format(&out_path, img_format)?;
     Ok(())
 }
+pub fn resize_image(
+    image: &mut DynamicImage,
+    dimensions: Dimensions,
+    filter: String,
+    preserve_aspect: bool,
+) -> Result<(), Box<dyn Error>> {
+    let mut filter_type = FilterType::Nearest;
+    let local_filter: &str = &filter;
+    match local_filter.to_uppercase().as_str() {
+        "NEAREST" => {
+            filter_type = FilterType::Nearest;
+        }
+        "TRIANGLE" => {
+            filter_type = FilterType::Triangle;
+        }
+        "GAUSSIAN" => {
+            filter_type = FilterType::Gaussian;
+        }
+        "CATMULLROM" => {
+            filter_type = FilterType::CatmullRom;
+        }
+        "LANCZOS" => {
+            filter_type = FilterType::Lanczos3;
+        }
+        _ => {
+            let _ = filter_type;
+            return Err("Please pick a valid filter out of: Nearest, Triangle, Gaussian, CatmullRom and Lanczos".into());
+        }
+    }
+
+    *image = if preserve_aspect {
+        image.resize(dimensions.x, dimensions.y, filter_type)
+    } else {
+        image.resize_exact(dimensions.x, dimensions.y, filter_type)
+    };
+
+    Ok(())
+}
