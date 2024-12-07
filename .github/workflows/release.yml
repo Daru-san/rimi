@@ -266,12 +266,12 @@ jobs:
 
           gh release create "${{ needs.plan.outputs.tag }}" --target "$RELEASE_COMMIT" $PRERELEASE_FLAG --title "$ANNOUNCEMENT_TITLE" --notes-file "$RUNNER_TEMP/notes.txt" artifacts/*
 
-  custom-publish-changelog.yml:
+  custom-publish-changelog:
     needs:
       - plan
       - host
     if: ${{ !fromJson(needs.plan.outputs.val).announcement_is_prerelease || fromJson(needs.plan.outputs.val).publish_prereleases }}
-    uses: ./.github/workflows/publish-changelog.yml.yml
+    uses: ./.github/workflows/publish-changelog.yml
     with:
       plan: ${{ needs.plan.outputs.val }}
     secrets: inherit
@@ -284,11 +284,11 @@ jobs:
     needs:
       - plan
       - host
-      - custom-publish-changelog.yml
+      - custom-publish-changelog
     # use "always() && ..." to allow us to wait for all publish jobs while
     # still allowing individual publish jobs to skip themselves (for prereleases).
     # "host" however must run to completion, no skipping allowed!
-    if: ${{ always() && needs.host.result == 'success' && (needs.custom-publish-changelog.yml.result == 'skipped' || needs.custom-publish-changelog.yml.result == 'success') }}
+    if: ${{ always() && needs.host.result == 'success' && (needs.custom-publish-changelog.result == 'skipped' || needs.custom-publish-changelog.result == 'success') }}
     runs-on: "ubuntu-20.04"
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
