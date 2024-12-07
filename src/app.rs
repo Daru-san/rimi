@@ -1,7 +1,9 @@
-use std::error::Error;
+mod command;
+mod state;
 
 use clap::Parser;
-mod command;
+use std::error::Error;
+
 use command::Command;
 
 /// Simple image manipulation tool
