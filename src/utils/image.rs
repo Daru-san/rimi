@@ -4,7 +4,6 @@ use image::imageops::FilterType;
 use image::{self, DynamicImage, ImageFormat, ImageReader};
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
-use std::process::exit;
 
 pub fn open_image(image_path: PathBuf) -> Result<DynamicImage, String> {
     match ImageReader::open(&image_path) {
@@ -46,14 +45,19 @@ pub fn save_image_format(
         }
     }
 
-    if !overwrite {
-        check_overwrite(&out_path);
+    match overwrite_if_existing(&out_path, overwrite) {
+        Ok(overwrite) => {
+            if overwrite {
+                match image.save_with_format(&out_path, img_format) {
+                    Ok(()) => Ok(()),
+                    Err(e) => Err(format!("Error saving image file {:?}: {}", out_path, e)),
+                }
+            } else {
+                Err("Not overriding existing file.".to_string())
+            }
+        }
+        Err(e) => Err(e.to_string()),
     }
-    match image.save_with_format(&out_path, img_format) {
-        Ok(()) => {}
-        Err(e) => return Err(format!("Error saving image file {:?}: {}", out_path, e)),
-    }
-    Ok(())
 }
 
 #[derive(Debug, Default)]
@@ -129,13 +133,22 @@ pub fn remove_background(image: &mut DynamicImage) {
     }
 }
 
-fn check_overwrite(path: &Path) {
-    if path.try_exists().expect("Error parsing output path") {
-        let message = format!("Overwrite existing file: {:?}?", path.to_string_lossy());
-        let confirm = Confirm::new().with_prompt(message).interact().unwrap();
-        if !confirm {
-            println!("Not overwriting existing file.");
-            exit(0);
-        }
+fn overwrite_if_existing(path: &Path, do_overwrite: bool) -> Result<bool, String> {
+    if do_overwrite {
+        return Ok(true);
+    }
+    match path.try_exists() {
+        Ok(path_exists) => match path_exists {
+            true => {
+                let message = format!("Overwrite existing file: {:?}?", path.to_string_lossy());
+                let confirm = Confirm::new().with_prompt(message).interact();
+                match confirm {
+                    Ok(val) => Ok(val),
+                    Err(e) => Err(e.to_string()),
+                }
+            }
+            false => Ok(true),
+        },
+        Err(e) => Err(e.to_string()),
     }
 }
