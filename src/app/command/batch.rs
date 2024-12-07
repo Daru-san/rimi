@@ -3,16 +3,17 @@ use crate::utils::image::save_image_format;
 use clap::Parser;
 use image::ImageReader;
 use std::error::Error;
+use std::path::PathBuf;
 
 #[derive(Parser)]
 pub struct BatchArgs {
     /// Images to be converted
-    #[clap(value_parser,num_args = 1..100,value_delimiter = ' ',required = true)]
+    #[clap(value_parser,num_args = 1..1000,value_delimiter = ' ',required = true)]
     images: Vec<String>,
 
     /// Optional output directory where all output images will be saved
     #[clap(short, long, default_value = ".")]
-    directory: String,
+    output_dir: PathBuf,
 
     /// Expression that the output image names will follow
     #[clap(short, long)]
@@ -37,7 +38,7 @@ impl BatchArgs {
 
         let paths = create_paths(
             images_str.clone(),
-            self.directory.as_str(),
+            self.output_dir.clone(),
             self.name_expr.as_deref(),
         )?;
 

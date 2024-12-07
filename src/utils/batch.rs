@@ -46,11 +46,11 @@ pub fn check_batch(images: Vec<&str>) -> Result<(), Vec<String>> {
 
 pub fn create_paths(
     files: Vec<&str>,
-    directory: &str,
+    directory: PathBuf,
     name_expr: Option<&str>,
 ) -> Result<Vec<String>, String> {
     let mut paths: Vec<String> = Vec::new();
-    let dest_dir = Path::new(directory);
+    let dest_dir = directory;
 
     if !dest_dir.is_dir() {
         return Err(format!(
