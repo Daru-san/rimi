@@ -138,7 +138,7 @@ impl FromStr for ColorInfo {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let col_type = if s.contains("luma") {
+        let col_type = if s.to_lowercase().contains("luma") {
             "Luma"
         } else if s.to_lowercase().contains("rgb") {
             "RGB"
@@ -156,7 +156,7 @@ impl FromStr for ColorInfo {
             return Err("Invalid bit depth".to_string());
         };
 
-        let is_alpha = s.contains("alpha");
+        let is_alpha = s.to_lowercase().contains("alpha");
 
         Ok(ColorInfo {
             color_type: col_type.to_string(),
