@@ -1,9 +1,25 @@
 use image::ImageReader;
+use std::error::Error;
+use std::fmt;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
-use std::process::exit;
 
-pub fn check_batch(images: Vec<&str>) {
+#[derive(Debug)]
+pub struct BatchError(pub Vec<String>);
+
+impl fmt::Display for BatchError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Errors occured while parsing images: {}", self.0.len())?;
+        for err in &self.0 {
+            write!(f, "{}", err)?
+        }
+        Ok(())
+    }
+}
+
+impl Error for BatchError {}
+
+pub fn check_batch(images: Vec<&str>) -> Result<(), Vec<String>> {
     let mut errors: Vec<String> = Vec::new();
     for image in images {
         let path = PathBuf::from(image);
@@ -22,11 +38,9 @@ pub fn check_batch(images: Vec<&str>) {
         }
     }
     if !errors.is_empty() {
-        eprintln!("Errors occured while parsing images:");
-        for error in errors {
-            eprintln!("{}", error);
-        }
-        exit(0);
+        Err(errors)
+    } else {
+        Ok(())
     }
 }
 

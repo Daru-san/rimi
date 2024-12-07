@@ -23,7 +23,18 @@ pub struct BatchArgs {
 impl BatchArgs {
     pub fn run(&self, app_args: &crate::app::GlobalArgs) -> Result<(), Box<dyn Error>> {
         let images_str: Vec<&str> = self.images.iter().map(|s| s.as_str()).collect();
-        check_batch(images_str.clone());
+
+        match check_batch(images_str.clone()) {
+            Ok(_) => (),
+            Err(errors) => {
+                let mut err_string = String::new();
+                for error in &errors {
+                    err_string.push_str(error);
+                }
+                return Err(Box::new(BatchError(errors)));
+            }
+        }
+
         let paths = create_paths(
             images_str.clone(),
             self.directory.as_str(),
