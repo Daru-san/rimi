@@ -21,6 +21,5 @@ pub fn print_info(image: &DynamicImage, path: PathBuf, do_short: bool) {
     if !do_short {
         println!("Color space: {}", color_info.color_type);
         println!("Bit depth: {}", color_info.bit_depth);
-        println!("Alpha: {}", color_info.is_alpha);
     }
 }
