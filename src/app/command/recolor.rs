@@ -1,7 +1,7 @@
 use crate::{
     app,
     utils::{
-        color::ColorInfo,
+        color::{BitDepth, ColorInfo, ColorTypeExt},
         image::{open_image, save_image_format},
     },
 };
@@ -19,8 +19,17 @@ pub struct RecolorArgs {
     output: Option<String>,
 
     /// Color type
-    #[clap(short, long)]
-    color_type: ColorInfo,
+    #[clap(flatten)]
+    color_args: ColorArgs,
+}
+
+#[derive(Parser)]
+struct ColorArgs {
+    #[clap(short, long, value_enum)]
+    color_type: ColorTypeExt,
+
+    #[clap(short = 'B', long, value_enum)]
+    bit_depth: BitDepth,
 }
 
 impl RecolorArgs {
@@ -36,7 +45,12 @@ impl RecolorArgs {
                 .expect("Error parsing image path: "),
         };
 
-        self.color_type.convert_image(&mut image);
+        let color_info = ColorInfo::new(
+            self.color_args.color_type.clone(),
+            self.color_args.bit_depth.clone(),
+        );
+
+        color_info.convert_image(&mut image);
 
         save_image_format(&image, output_path, None, app_args.overwrite)?;
         Ok(())
