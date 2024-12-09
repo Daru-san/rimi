@@ -19,7 +19,7 @@ pub fn print_info(image: &DynamicImage, path: PathBuf, do_short: bool) {
     println!("Format: {}", format.to_mime_type());
 
     if !do_short {
-        println!("Color space: {}", color_info.color_type);
+        println!("Color space: {}", color_info.color_space);
         println!("Bit depth: {}", color_info.bit_depth);
     }
 }

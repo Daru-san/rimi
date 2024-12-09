@@ -1,7 +1,7 @@
 use crate::{
     app,
     utils::{
-        color::{BitDepth, ColorInfo, ColorTypeExt},
+        color::{BitDepth, ColorInfo, ColorSpace},
         image::{open_image, save_image_format},
     },
 };
@@ -25,9 +25,11 @@ pub struct RecolorArgs {
 
 #[derive(Parser)]
 struct ColorArgs {
+    /// Color space of the image
     #[clap(short, long, value_enum)]
-    color_type: ColorTypeExt,
+    color_space: ColorSpace,
 
+    /// Bit depth of the image
     #[clap(short = 'B', long, value_enum)]
     bit_depth: BitDepth,
 }
@@ -46,7 +48,7 @@ impl RecolorArgs {
         };
 
         let color_info = ColorInfo::new(
-            self.color_args.color_type.clone(),
+            self.color_args.color_space.clone(),
             self.color_args.bit_depth.clone(),
         );
 
