@@ -7,10 +7,10 @@ use image::{ColorType, DynamicImage};
 #[derive(Debug, Clone)]
 pub struct ColorInfo {
     pub bit_depth: BitDepth,
-    pub color_type: ColorTypeExt,
+    pub color_space: ColorSpace,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum BitDepth {
     B8 = 8,
     B16 = 16,
@@ -48,8 +48,8 @@ impl FromStr for BitDepth {
     }
 }
 
-#[derive(ValueEnum, Debug, Clone)]
-pub enum ColorTypeExt {
+#[derive(ValueEnum, Debug, Clone, Copy)]
+pub enum ColorSpace {
     Rgb,
     RgbA,
     Luma,
@@ -57,70 +57,70 @@ pub enum ColorTypeExt {
     Unknown,
 }
 
-impl Display for ColorTypeExt {
+impl Display for ColorSpace {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 
 impl ColorInfo {
-    pub fn new(color_type: ColorTypeExt, bit_depth: BitDepth) -> Self {
+    pub fn new(color_space: &ColorSpace, bit_depth: &BitDepth) -> Self {
         ColorInfo {
-            color_type,
-            bit_depth,
+            color_space: *color_space,
+            bit_depth: *bit_depth,
         }
     }
     pub fn from_image(image: &DynamicImage) -> Self {
         match image.color() {
             ColorType::L8 => ColorInfo {
                 bit_depth: BitDepth::B8,
-                color_type: ColorTypeExt::Luma,
+                color_space: ColorSpace::Luma,
             },
             ColorType::La8 => ColorInfo {
                 bit_depth: BitDepth::B8,
-                color_type: ColorTypeExt::LumaA,
+                color_space: ColorSpace::LumaA,
             },
             ColorType::L16 => ColorInfo {
                 bit_depth: BitDepth::B16,
-                color_type: ColorTypeExt::Luma,
+                color_space: ColorSpace::Luma,
             },
             ColorType::La16 => ColorInfo {
                 bit_depth: BitDepth::B16,
-                color_type: ColorTypeExt::LumaA,
+                color_space: ColorSpace::LumaA,
             },
             ColorType::Rgb8 => ColorInfo {
                 bit_depth: BitDepth::B8,
-                color_type: ColorTypeExt::Rgb,
+                color_space: ColorSpace::Rgb,
             },
             ColorType::Rgba8 => ColorInfo {
                 bit_depth: BitDepth::B8,
-                color_type: ColorTypeExt::RgbA,
+                color_space: ColorSpace::RgbA,
             },
             ColorType::Rgb16 => ColorInfo {
                 bit_depth: BitDepth::B16,
-                color_type: ColorTypeExt::Rgb,
+                color_space: ColorSpace::Rgb,
             },
             ColorType::Rgba16 => ColorInfo {
                 bit_depth: BitDepth::B16,
-                color_type: ColorTypeExt::Rgb,
+                color_space: ColorSpace::Rgb,
             },
             ColorType::Rgb32F => ColorInfo {
                 bit_depth: BitDepth::B32,
-                color_type: ColorTypeExt::Rgb,
+                color_space: ColorSpace::Rgb,
             },
             ColorType::Rgba32F => ColorInfo {
                 bit_depth: BitDepth::B32,
-                color_type: ColorTypeExt::RgbA,
+                color_space: ColorSpace::RgbA,
             },
             _ => ColorInfo {
                 bit_depth: BitDepth::B8,
-                color_type: ColorTypeExt::Unknown,
+                color_space: ColorSpace::Unknown,
             },
         }
     }
     pub fn convert_image(&self, image: &mut DynamicImage) {
-        let color_type = self.to_color_type();
-        let colored_image = match color_type {
+        let color_space = self.to_color_space();
+        let colored_image = match color_space {
             ColorType::L8 => DynamicImage::ImageLuma8(image.to_luma8()),
             ColorType::La8 => DynamicImage::ImageLumaA8(image.to_luma_alpha8()),
             ColorType::L16 => DynamicImage::ImageLuma16(image.to_luma16()),
@@ -135,29 +135,29 @@ impl ColorInfo {
         };
         *image = colored_image;
     }
-    fn to_color_type(&self) -> ColorType {
-        match self.color_type {
-            ColorTypeExt::Rgb => match self.bit_depth {
+    fn to_color_space(&self) -> ColorType {
+        match self.color_space {
+            ColorSpace::Rgb => match self.bit_depth {
                 BitDepth::B8 => ColorType::Rgb8,
                 BitDepth::B16 => ColorType::Rgb16,
                 BitDepth::B32 => ColorType::Rgb32F,
             },
-            ColorTypeExt::RgbA => match self.bit_depth {
+            ColorSpace::RgbA => match self.bit_depth {
                 BitDepth::B8 => ColorType::Rgba8,
                 BitDepth::B16 => ColorType::Rgba16,
                 BitDepth::B32 => ColorType::Rgba32F,
             },
-            ColorTypeExt::Luma => match self.bit_depth {
+            ColorSpace::Luma => match self.bit_depth {
                 BitDepth::B8 => ColorType::L8,
                 BitDepth::B16 => ColorType::L16,
                 BitDepth::B32 => ColorType::L16,
             },
-            ColorTypeExt::LumaA => match self.bit_depth {
+            ColorSpace::LumaA => match self.bit_depth {
                 BitDepth::B8 => ColorType::La8,
                 BitDepth::B16 => ColorType::La16,
                 BitDepth::B32 => ColorType::La16,
             },
-            ColorTypeExt::Unknown => ColorType::Rgb8,
+            ColorSpace::Unknown => ColorType::Rgb8,
         }
     }
 }
