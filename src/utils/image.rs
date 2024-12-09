@@ -104,32 +104,37 @@ pub fn resize_image(
 }
 
 pub fn remove_background(image: &mut DynamicImage) {
+    use super::color::BitDepth::{B16, B32, B8};
     let color_info = ColorInfo::from_image(image);
 
-    if color_info.bit_depth == 8 {
-        let mut img = image.to_rgba8();
-        for p in img.pixels_mut() {
-            if p[0] == 255 && p[1] == 255 && p[2] == 255 {
-                p[3] = 0;
+    match color_info.bit_depth {
+        B8 => {
+            let mut img = image.to_rgba8();
+            for p in img.pixels_mut() {
+                if p[0] == 255 && p[1] == 255 && p[2] == 255 {
+                    p[3] = 0;
+                }
             }
+            *image = DynamicImage::ImageRgba8(img);
         }
-        *image = DynamicImage::ImageRgba8(img);
-    } else if color_info.bit_depth == 16 {
-        let mut img = image.to_rgba16();
-        for p in img.pixels_mut() {
-            if p[0] == 255 && p[1] == 255 && p[2] == 255 {
-                p[3] = 0;
+        B16 => {
+            let mut img = image.to_rgba16();
+            for p in img.pixels_mut() {
+                if p[0] == 255 && p[1] == 255 && p[2] == 255 {
+                    p[3] = 0;
+                }
             }
+            *image = DynamicImage::ImageRgba16(img);
         }
-        *image = DynamicImage::ImageRgba16(img);
-    } else {
-        let mut img = image.to_rgba32f();
-        for p in img.pixels_mut() {
-            if p[0] == 255.0 && p[1] == 255.0 && p[2] == 255.0 {
-                p[3] = 0.0;
+        B32 => {
+            let mut img = image.to_rgba32f();
+            for p in img.pixels_mut() {
+                if p[0] == 255.0 && p[1] == 255.0 && p[2] == 255.0 {
+                    p[3] = 0.0;
+                }
             }
+            *image = DynamicImage::ImageRgba32F(img);
         }
-        *image = DynamicImage::ImageRgba32F(img);
     }
 }
 
