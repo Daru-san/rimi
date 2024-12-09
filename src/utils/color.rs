@@ -1,77 +1,126 @@
+use std::fmt::Display;
 use std::str::FromStr;
 
+use clap::ValueEnum;
 use image::{ColorType, DynamicImage};
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct ColorInfo {
-    pub bit_depth: u32,
-    pub color_type: String,
-    pub is_alpha: bool,
+    pub bit_depth: BitDepth,
+    pub color_space: ColorSpace,
+}
+
+#[derive(Debug, Clone)]
+pub enum BitDepth {
+    B8 = 8,
+    B16 = 16,
+    B32 = 32,
+}
+
+impl Display for BitDepth {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BitDepth::B8 => write!(f, "{}", 8),
+            BitDepth::B16 => write!(f, "{}", 16),
+            BitDepth::B32 => write!(f, "{}", 32),
+        }
+    }
+}
+
+impl PartialEq for BitDepth {
+    fn eq(&self, other: &Self) -> bool {
+        self == other
+    }
+}
+
+impl FromStr for BitDepth {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let num: u32 = s.parse::<u32>().unwrap();
+
+        match num {
+            8 => Ok(BitDepth::B8),
+            16 => Ok(BitDepth::B16),
+            32 => Ok(BitDepth::B32),
+            _ => Err("Bit depth must be 8, 16 or 32.".into()),
+        }
+    }
+}
+
+#[derive(ValueEnum, Debug, Clone)]
+pub enum ColorSpace {
+    Rgb,
+    RgbA,
+    Luma,
+    LumaA,
+    Unknown,
+}
+
+impl Display for ColorSpace {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl ColorInfo {
+    pub fn new(color_space: ColorSpace, bit_depth: BitDepth) -> Self {
+        ColorInfo {
+            color_space,
+            bit_depth,
+        }
+    }
     pub fn from_image(image: &DynamicImage) -> Self {
         match image.color() {
             ColorType::L8 => ColorInfo {
-                bit_depth: 8,
-                color_type: "Luma".to_string(),
-                is_alpha: false,
+                bit_depth: BitDepth::B8,
+                color_space: ColorSpace::Luma,
             },
             ColorType::La8 => ColorInfo {
-                bit_depth: 8,
-                color_type: "Luma".to_string(),
-                is_alpha: true,
+                bit_depth: BitDepth::B8,
+                color_space: ColorSpace::LumaA,
             },
             ColorType::L16 => ColorInfo {
-                bit_depth: 16,
-                color_type: "Luma".to_string(),
-                is_alpha: true,
+                bit_depth: BitDepth::B16,
+                color_space: ColorSpace::Luma,
             },
             ColorType::La16 => ColorInfo {
-                bit_depth: 16,
-                color_type: "Luma".to_string(),
-                is_alpha: true,
+                bit_depth: BitDepth::B16,
+                color_space: ColorSpace::LumaA,
             },
             ColorType::Rgb8 => ColorInfo {
-                bit_depth: 8,
-                color_type: "RGB".to_string(),
-                is_alpha: false,
+                bit_depth: BitDepth::B8,
+                color_space: ColorSpace::Rgb,
             },
             ColorType::Rgba8 => ColorInfo {
-                bit_depth: 8,
-                color_type: "RGB".to_string(),
-                is_alpha: true,
+                bit_depth: BitDepth::B8,
+                color_space: ColorSpace::RgbA,
             },
             ColorType::Rgb16 => ColorInfo {
-                bit_depth: 16,
-                color_type: "RGB".to_string(),
-                is_alpha: false,
+                bit_depth: BitDepth::B16,
+                color_space: ColorSpace::Rgb,
             },
             ColorType::Rgba16 => ColorInfo {
-                bit_depth: 16,
-                color_type: "RGB".to_string(),
-                is_alpha: true,
+                bit_depth: BitDepth::B16,
+                color_space: ColorSpace::Rgb,
             },
             ColorType::Rgb32F => ColorInfo {
-                bit_depth: 32,
-                color_type: "RGB".to_string(),
-                is_alpha: false,
+                bit_depth: BitDepth::B32,
+                color_space: ColorSpace::Rgb,
             },
             ColorType::Rgba32F => ColorInfo {
-                bit_depth: 32,
-                color_type: "RGB".to_string(),
-                is_alpha: true,
+                bit_depth: BitDepth::B32,
+                color_space: ColorSpace::RgbA,
             },
             _ => ColorInfo {
-                bit_depth: 8,
-                color_type: "Unknown".to_string(),
-                is_alpha: false,
+                bit_depth: BitDepth::B8,
+                color_space: ColorSpace::Unknown,
             },
         }
     }
     pub fn convert_image(&self, image: &mut DynamicImage) {
-        let color_type = self.get_color_type();
-        let colored_image = match color_type {
+        let color_space = self.to_color_space();
+        let colored_image = match color_space {
             ColorType::L8 => DynamicImage::ImageLuma8(image.to_luma8()),
             ColorType::La8 => DynamicImage::ImageLumaA8(image.to_luma_alpha8()),
             ColorType::L16 => DynamicImage::ImageLuma16(image.to_luma16()),
@@ -86,82 +135,29 @@ impl ColorInfo {
         };
         *image = colored_image;
     }
-    fn get_color_type(&self) -> ColorType {
-        match self.color_type.as_str() {
-            "RGB" => match self.bit_depth {
-                8 => {
-                    if self.is_alpha {
-                        ColorType::Rgba8
-                    } else {
-                        ColorType::Rgb8
-                    }
-                }
-                16 => {
-                    if self.is_alpha {
-                        ColorType::Rgba16
-                    } else {
-                        ColorType::Rgb16
-                    }
-                }
-                32 => {
-                    if self.is_alpha {
-                        ColorType::Rgba32F
-                    } else {
-                        ColorType::Rgb32F
-                    }
-                }
-                _ => ColorType::Rgb8,
+    fn to_color_space(&self) -> ColorType {
+        match self.color_space {
+            ColorSpace::Rgb => match self.bit_depth {
+                BitDepth::B8 => ColorType::Rgb8,
+                BitDepth::B16 => ColorType::Rgb16,
+                BitDepth::B32 => ColorType::Rgb32F,
             },
-            "Luma" => match self.bit_depth {
-                8 => {
-                    if self.is_alpha {
-                        ColorType::La8
-                    } else {
-                        ColorType::L8
-                    }
-                }
-                16 => {
-                    if self.is_alpha {
-                        ColorType::La16
-                    } else {
-                        ColorType::L16
-                    }
-                }
-                _ => ColorType::L8,
+            ColorSpace::RgbA => match self.bit_depth {
+                BitDepth::B8 => ColorType::Rgba8,
+                BitDepth::B16 => ColorType::Rgba16,
+                BitDepth::B32 => ColorType::Rgba32F,
             },
-            _ => ColorType::Rgb8,
+            ColorSpace::Luma => match self.bit_depth {
+                BitDepth::B8 => ColorType::L8,
+                BitDepth::B16 => ColorType::L16,
+                BitDepth::B32 => ColorType::L16,
+            },
+            ColorSpace::LumaA => match self.bit_depth {
+                BitDepth::B8 => ColorType::La8,
+                BitDepth::B16 => ColorType::La16,
+                BitDepth::B32 => ColorType::La16,
+            },
+            ColorSpace::Unknown => ColorType::Rgb8,
         }
-    }
-}
-
-impl FromStr for ColorInfo {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let col_type = if s.to_lowercase().contains("luma") {
-            "Luma"
-        } else if s.to_lowercase().contains("rgb") {
-            "RGB"
-        } else {
-            return Err("Invalid color type".to_string());
-        };
-
-        let bit_depth = if s.contains("8") {
-            8
-        } else if s.contains("16") {
-            16
-        } else if s.contains("32") {
-            32
-        } else {
-            return Err("Invalid bit depth".to_string());
-        };
-
-        let is_alpha = s.to_lowercase().contains("alpha");
-
-        Ok(ColorInfo {
-            color_type: col_type.to_string(),
-            bit_depth,
-            is_alpha,
-        })
     }
 }
