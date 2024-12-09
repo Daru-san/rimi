@@ -10,7 +10,7 @@ pub struct ColorInfo {
     pub color_type: ColorTypeExt,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum BitDepth {
     B8 = 8,
     B16 = 16,
