@@ -150,7 +150,6 @@ impl CommandArgs {
 
         let out_paths = create_paths(paths, output_path, self.extra_args.name_expr.as_deref())?;
 
-            save_image_format(image, &paths[index], None, app_args.overwrite)?;
         for (index, mut image) in good_images.iter_mut().enumerate() {
             match &self.command {
                 Command::Convert => (),
@@ -161,6 +160,7 @@ impl CommandArgs {
                     return Err(format!("{:?} cannot be run with the batch flag", command).into());
                 }
             };
+            save_image_format(image, &out_paths[index], None, self.extra_args.overwrite)?;
         }
         Ok(())
     }
