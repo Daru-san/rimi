@@ -55,6 +55,7 @@ struct ExtraArgs {
     #[clap(short, long)]
     format: Option<String>,
 }
+
 #[derive(Parser, Debug)]
 pub enum Command {
     /// Convert an image
@@ -118,6 +119,42 @@ impl CommandArgs {
             self.extra_args.format.as_deref(),
             self.extra_args.overwrite
         )?;
+        Ok(())
+    }
+
+    fn run_batch(self, app_args: &super::GlobalArgs) -> Result<(), Box<dyn Error>> {
+        use crate::utils::batch::*;
+        use crate::utils::image::{open_image, save_image_format};
+
+        let mut good_images: Vec<DynamicImage> = Vec::new();
+        let mut image_errors = Vec::new();
+        let mut paths = Vec::new();
+
+        for image in self.images {
+            let current_image = open_image(image.clone());
+            match current_image {
+                Ok(good_image) => {
+                    good_images.push(good_image);
+                    paths.push(image);
+                }
+                Err(e) => image_errors.push(e),
+            }
+        }
+
+        if self.abort_on_error {
+            return Err(Box::new(BatchError(image_errors)));
+        }
+
+        let output_path = match self.output {
+            Some(path) => path,
+            None => PathBuf::from("."),
+        };
+
+        let paths = create_paths(paths.clone(), output_path,self.extra_args.name_expr.as_deref())?;
+
+        for (index, image) in good_images.iter().enumerate() {
+            save_image_format(image, &paths[index], None, app_args.overwrite)?;
+        }
         Ok(())
     }
 }
