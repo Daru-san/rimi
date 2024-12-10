@@ -12,11 +12,11 @@ pub struct ResizeArgs {
     height: u32,
 
     /// Image Sampling filter
-    #[clap(short, long, default_value = "Nearest")]
+    #[clap(short = 'F', long, default_value = "Nearest")]
     filter: String,
 
     /// Preserve aspect ratio
-    #[clap(short, long)]
+    #[clap(short = 'P', long)]
     preserve_aspect: bool,
 }
 
