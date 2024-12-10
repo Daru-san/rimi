@@ -34,7 +34,29 @@ pub struct CommandArgs {
     /// Output path, use a directory when batch converting, cannot be used with format
     #[clap(short, long)]
     output: Option<PathBuf>,
+
+    /// Abort on error
+    #[clap(short, long)]
+    abort_on_error: bool,
+
+    #[clap(flatten)]
+    extra_args: ExtraArgs,
 }
+
+#[derive(Parser, Debug)]
+struct ExtraArgs {
+    /// Overwrite existing images
+    #[clap(short, long)]
+    overwrite: bool,
+
+    /// Output file name expression
+    name_expr: Option<String>,
+
+    /// Output image(s) format, cannot be used with output
+    #[clap(short, long)]
+    format: Option<String>,
+}
+#[derive(Parser, Debug)]
 pub enum Command {
     /// Convert an image
     #[clap(short_flag = 'c')]
