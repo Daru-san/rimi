@@ -18,8 +18,7 @@ impl fmt::Display for BatchError {
 }
 
 impl Error for BatchError {}
-
-pub fn check_batch(images: Vec<&str>) -> Result<(), Vec<String>> {
+pub fn check_batch(images: Vec<&PathBuf>) -> Result<(), Vec<String>> {
     let mut errors: Vec<String> = Vec::new();
     for image in images {
         let path = PathBuf::from(image);
@@ -45,12 +44,12 @@ pub fn check_batch(images: Vec<&str>) -> Result<(), Vec<String>> {
 }
 
 pub fn create_paths(
-    files: Vec<&str>,
-    directory: PathBuf,
+    files: Vec<PathBuf>,
+    destination: PathBuf,
     name_expr: Option<&str>,
-) -> Result<Vec<String>, String> {
-    let mut paths: Vec<String> = Vec::new();
-    let dest_dir = directory;
+) -> Result<Vec<PathBuf>, String> {
+    let mut paths: Vec<PathBuf> = Vec::new();
+    let dest_dir = destination;
 
     if !dest_dir.is_dir() {
         return Err(format!(
@@ -80,7 +79,7 @@ pub fn create_paths(
         };
         path.set_file_name(file_name);
 
-        paths.push(path.to_string_lossy().to_string());
+        paths.push(path);
     }
 
     Ok(paths)
