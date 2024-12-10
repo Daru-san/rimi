@@ -23,15 +23,15 @@ pub struct CommandArgs {
     pub command: Command,
 
     /// Number of images to process in parallel
-    #[clap(short, long, hide = true, default_value = "1")]
+    #[clap(short, long, hide = true, default_value = "1", global = true)]
     parallel_images: u32,
 
     /// Images to be converted
-    #[clap(value_parser,num_args = 1..1000,value_delimiter = ' ',required = true)]
+    #[clap(short,long,value_parser,num_args = 1..1000,value_delimiter = ' ',required = false,global = true)]
     images: Vec<PathBuf>,
 
     /// Output path, use a directory when batch converting, cannot be used with format
-    #[clap(short, long)]
+    #[clap(short, long, global = true)]
     output: Option<PathBuf>,
 
     /// Abort on error
@@ -45,14 +45,15 @@ pub struct CommandArgs {
 #[derive(Parser, Debug)]
 struct ExtraArgs {
     /// Overwrite existing images
-    #[clap(short, long)]
+    #[clap(short = 'x', long, global = true)]
     overwrite: bool,
 
     /// Output file name expression
+    #[clap(short, long, global = true)]
     name_expr: Option<String>,
 
     /// Output image(s) format, cannot be used with output
-    #[clap(short, long)]
+    #[clap(short, long, global = true)]
     format: Option<String>,
 }
 
