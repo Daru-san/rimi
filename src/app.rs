@@ -16,7 +16,7 @@ pub struct Args {
 
 impl Args {
     pub fn run(self) -> Result<(), Box<dyn Error>> {
-        self.command_args.run(&self.global_args);
+        self.command_args.run();
         Ok(())
     }
 }

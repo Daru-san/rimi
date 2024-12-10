@@ -81,7 +81,7 @@ pub enum Command {
 }
 
 impl CommandArgs {
-    pub fn run(self, app_args: &super::GlobalArgs) -> Result<(), Box<dyn Error>> {
+    pub fn run(self) -> Result<(), Box<dyn Error>> {
         if self.extra_args.format.is_some() && self.output.is_some() {
             return Err("Select either format or output".into());
         }
@@ -89,13 +89,13 @@ impl CommandArgs {
             Command::Completions(args) => args.run(),
             Command::Info(args) => args.run(),
             _ => match self.images.len() {
-                1 => self.run_single(app_args),
-                _ => self.run_batch(app_args),
+                1 => self.run_single(),
+                _ => self.run_batch(),
             },
         }
     }
 
-    fn run_single(self, app_args: &super::GlobalArgs) -> Result<(), Box<dyn Error>> {
+    fn run_single(&self) -> Result<(), Box<dyn Error>> {
         use crate::utils::image::{open_image, save_image_format};
         let image_path = &self.images[0];
         let mut image = open_image(image_path.to_path_buf())?;
@@ -122,7 +122,7 @@ impl CommandArgs {
         Ok(())
     }
 
-    fn run_batch(self, app_args: &super::GlobalArgs) -> Result<(), Box<dyn Error>> {
+    fn run_batch(&self) -> Result<(), Box<dyn Error>> {
         use crate::utils::batch::*;
         use crate::utils::image::{open_image, save_image_format};
 
