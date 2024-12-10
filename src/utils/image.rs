@@ -21,7 +21,7 @@ pub fn open_image(image_path: PathBuf) -> Result<DynamicImage, String> {
 
 pub fn save_image_format(
     image: &DynamicImage,
-    out: &str,
+    out: &PathBuf,
     format: Option<&str>,
     overwrite: bool,
 ) -> Result<(), String> {
