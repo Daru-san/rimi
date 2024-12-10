@@ -3,7 +3,7 @@ use clap::Parser;
 use std::error::Error;
 use std::path::PathBuf;
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 pub struct InfoArgs {
     /// Shorted information
     #[clap(short, long)]
