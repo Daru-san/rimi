@@ -152,8 +152,17 @@ impl CommandArgs {
 
         let paths = create_paths(paths.clone(), output_path,self.extra_args.name_expr.as_deref())?;
 
-        for (index, image) in good_images.iter().enumerate() {
             save_image_format(image, &paths[index], None, app_args.overwrite)?;
+        for (index, mut image) in good_images.iter_mut().enumerate() {
+            match &self.command {
+                Command::Convert => (),
+                Command::Resize(args) => args.run(&mut image)?,
+                Command::Recolor(args) => args.run(&mut image)?,
+                Command::Transparentize(args) => args.run(&mut image)?,
+                command => {
+                    return Err(format!("{:?} cannot be run with the batch flag", command).into());
+                }
+            };
         }
         Ok(())
     }
