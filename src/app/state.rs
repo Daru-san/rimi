@@ -13,6 +13,12 @@ struct Task {
 }
 
 impl AppState {
+    pub fn new() -> Self {
+        Self {
+            global_progress: 0,
+            tasks: Vec::new(),
+        }
+    }
     pub fn push_task(&mut self, task_name: &str) {
         let task_id = (self.tasks.len() + 1) as u32;
         let task = Task::new(task_id, task_name);
