@@ -60,19 +60,14 @@ struct ExtraArgs {
 pub enum Command {
     /// Convert an image
     #[clap(short_flag = 'c')]
-    Convert(ConvertArgs),
+    Convert,
 
     /// Resize an image
     #[clap(short_flag = 'r')]
     Resize(ResizeArgs),
 
     /// Show image information
-    #[clap(short_flag = 'i')]
     Info(InfoArgs),
-
-    /// Batch image conversion
-    #[clap(short_flag = 'b')]
-    Batch(BatchArgs),
 
     /// Remove the background from an image
     #[clap(short_flag = 't')]
