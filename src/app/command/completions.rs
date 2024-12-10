@@ -16,20 +16,11 @@ pub struct CompletionArgs {
 impl CompletionArgs {
     pub fn run(&self) -> Result<(), Box<dyn Error>> {
         match self.shell.return_shell() {
-            Ok((None, e)) => match e {
-                Some(a) => {
-                    generate(a, &mut app::GlobalArgs::command(), "rimi", &mut stdout());
-                }
-                _ => {
-                    return Err("Unkown shell".into());
-                }
-            },
-            Ok((_, None)) => {
-                generate(Nushell, &mut app::GlobalArgs::command(), "rimi", &mut stdout());
+            Ok((None, Some(shell))) => {
+                generate(shell, &mut app::Args::command(), "rimi", &mut stdout())
             }
-            _ => {
-                return Err("Unkown shell".into());
-            }
+            Ok((_, None)) => generate(Nushell, &mut app::Args::command(), "rimi", &mut stdout()),
+            _ => return Err("Unkown shell".into()),
         }
         Ok(())
     }
@@ -65,7 +56,7 @@ impl FromStr for ShellExt {
             "ELVISH" => Ok(ShellExt {
                 name: "Elvish".to_string(),
             }),
-            _ => return Err(format!("{:?} is not a known or supported shell", s)),
+            _ => Err(format!("{:?} is not a known or supported shell", s)),
         }
     }
 }
@@ -80,7 +71,7 @@ impl ShellExt {
             "FISH" => Ok((None, Some(Shell::Fish))),
             "NUSHELL" => Ok((Some(Nushell), None)),
             "ELVISH" => Ok((None, Some(Shell::Elvish))),
-            _ => return Err("Unknown shell".into()),
+            _ => Err("Unknown shell".into()),
         }
     }
 }
