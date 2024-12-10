@@ -4,7 +4,7 @@ mod state;
 use clap::Parser;
 use std::error::Error;
 
-use command::Command;
+use command::CommandArgs;
 
 /// Simple image manipulation tool
 #[derive(Parser)]
@@ -12,16 +12,6 @@ use command::Command;
 pub struct Args {
     #[clap(flatten)]
     pub command_args: CommandArgs,
-
-    #[clap(flatten)]
-    global_args: GlobalArgs,
-}
-
-#[derive(Parser)]
-pub struct GlobalArgs {
-    /// Overwrite any existing files when saving the image
-    #[clap(short = 'x', long, default_value = "false", global = true)]
-    pub overwrite: bool,
 }
 
 impl Args {
