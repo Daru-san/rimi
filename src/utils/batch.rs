@@ -1,7 +1,5 @@
-use image::ImageReader;
 use std::error::Error;
 use std::fmt;
-use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
