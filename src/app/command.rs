@@ -104,14 +104,12 @@ impl CommandArgs {
             Some(path) => path,
             None => &image_path,
         };
-        match self.command {
-            Command::Convert => ()
+        match &self.command {
+            Command::Convert => (),
             Command::Resize(args) => args.run(&mut image)?,
             Command::Recolor(args) => args.run(&mut image)?,
-            Command::Transparentize(args) => args.run(&mut image, image_path)?,
-            command => {
-                return Err(format!("{:?} cannot be run with the batch flag", command).into());
-            }
+            Command::Transparentize(args) => args.run(&mut image)?,
+            _ => {}
         };
         save_image_format(
             &image,
