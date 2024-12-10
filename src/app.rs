@@ -26,7 +26,7 @@ pub struct GlobalArgs {
 
 impl Args {
     pub fn run(self) -> Result<(), Box<dyn Error>> {
-        self.cmd.run(&self.global_args)?;
+        self.command_args.run(&self.global_args);
         Ok(())
     }
 }
