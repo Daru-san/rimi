@@ -115,7 +115,7 @@ impl CommandArgs {
             &image,
             output_path,
             self.extra_args.format.as_deref(),
-            self.extra_args.overwrite
+            self.extra_args.overwrite,
         )?;
         Ok(())
     }
