@@ -1,22 +1,21 @@
-use clap::Parser;
-mod batch;
 mod completions;
-mod convert;
 mod info;
 mod recolor;
 mod resize;
 mod transparent;
 
-use batch::BatchArgs;
 use completions::CompletionArgs;
-use convert::ConvertArgs;
+use image::DynamicImage;
 use info::InfoArgs;
 use recolor::RecolorArgs;
 use resize::ResizeArgs;
 use transparent::TransparentArgs;
 
+use clap::Parser;
 use std::error::Error;
 use std::path::PathBuf;
+
+use crate::app::state::AppState;
 
 #[derive(Parser)]
 pub struct CommandArgs {
