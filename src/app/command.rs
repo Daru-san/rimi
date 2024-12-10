@@ -103,7 +103,7 @@ impl CommandArgs {
 
         let output_path = match &self.output {
             Some(path) => path,
-            None => &image_path,
+            None => image_path,
         };
         match &self.command {
             Command::Convert => (),
