@@ -128,12 +128,12 @@ impl CommandArgs {
         let mut image_errors = Vec::new();
         let mut paths = Vec::new();
 
-        for image in self.images {
+        for image in &self.images {
             let current_image = open_image(image.clone());
             match current_image {
                 Ok(good_image) => {
                     good_images.push(good_image);
-                    paths.push(image);
+                    paths.push(image.to_path_buf());
                 }
                 Err(e) => image_errors.push(e),
             }
@@ -143,12 +143,12 @@ impl CommandArgs {
             return Err(Box::new(BatchError(image_errors)));
         }
 
-        let output_path = match self.output {
-            Some(path) => path,
+        let output_path = match &self.output {
+            Some(path) => path.to_path_buf(),
             None => PathBuf::from("."),
         };
 
-        let paths = create_paths(paths.clone(), output_path,self.extra_args.name_expr.as_deref())?;
+        let out_paths = create_paths(paths, output_path, self.extra_args.name_expr.as_deref())?;
 
             save_image_format(image, &paths[index], None, app_args.overwrite)?;
         for (index, mut image) in good_images.iter_mut().enumerate() {
