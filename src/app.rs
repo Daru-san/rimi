@@ -10,8 +10,8 @@ use command::Command;
 #[derive(Parser)]
 #[command(version,about,long_about = None)]
 pub struct Args {
-    #[command(subcommand)]
-    pub cmd: Command,
+    #[clap(flatten)]
+    pub command_args: CommandArgs,
 
     #[clap(flatten)]
     global_args: GlobalArgs,

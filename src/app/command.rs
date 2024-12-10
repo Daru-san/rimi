@@ -16,8 +16,25 @@ use resize::ResizeArgs;
 use transparent::TransparentArgs;
 
 use std::error::Error;
+use std::path::PathBuf;
 
 #[derive(Parser)]
+pub struct CommandArgs {
+    #[command(subcommand)]
+    pub command: Command,
+
+    /// Number of images to process in parallel
+    #[clap(short, long, hide = true, default_value = "1")]
+    parallel_images: u32,
+
+    /// Images to be converted
+    #[clap(value_parser,num_args = 1..1000,value_delimiter = ' ',required = true)]
+    images: Vec<PathBuf>,
+
+    /// Output path, use a directory when batch converting, cannot be used with format
+    #[clap(short, long)]
+    output: Option<PathBuf>,
+}
 pub enum Command {
     /// Convert an image
     #[clap(short_flag = 'c')]
