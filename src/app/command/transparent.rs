@@ -7,7 +7,6 @@ use image::ImageFormat;
 use std::error::Error;
 use std::path::PathBuf;
 
-#[derive(Parser)]
 pub struct TransparentArgs {
     /// Path to the input image
     image_file: PathBuf,
@@ -16,6 +15,7 @@ pub struct TransparentArgs {
     #[clap(short, long, global = true)]
     output: Option<String>,
 }
+#[derive(Parser, Debug)]
 
 impl TransparentArgs {
     pub fn run(&self, app_args: &app::GlobalArgs) -> Result<(), Box<dyn Error>> {

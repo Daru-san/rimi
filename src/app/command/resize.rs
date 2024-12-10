@@ -4,7 +4,7 @@ use clap::Parser;
 use std::error::Error;
 use std::path::PathBuf;
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 pub struct ResizeArgs {
     /// Path to the image file
     image_file: PathBuf,
