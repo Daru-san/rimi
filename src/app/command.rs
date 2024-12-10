@@ -63,17 +63,18 @@ pub enum Command {
     Completions(CompletionArgs),
 }
 
-impl Command {
+impl CommandArgs {
     pub fn run(self, app_args: &super::GlobalArgs) -> Result<(), Box<dyn Error>> {
-        use Command::*;
-        match self {
-            Convert(args) => args.run(app_args),
-            Resize(args) => args.run(app_args),
-            Info(args) => args.run(),
-            Batch(args) => args.run(app_args),
-            Transparentize(args) => args.run(app_args),
-            Recolor(args) => args.run(app_args),
-            Completions(args) => args.run(),
+        if self.extra_args.format.is_some() && self.output.is_some() {
+            return Err("Select either format or output".into());
+        }
+        match self.command {
+            Command::Completions(args) => args.run(),
+            Command::Info(args) => args.run(),
+            _ => match self.images.len() {
+                1 => self.run_single(app_args),
+                _ => self.run_batch(app_args),
+            },
         }
     }
 }
