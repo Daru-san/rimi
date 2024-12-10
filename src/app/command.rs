@@ -90,6 +90,7 @@ impl CommandArgs {
             Command::Completions(args) => args.run(),
             Command::Info(args) => args.run(),
             _ => match self.images.len() {
+                0 => Err("Please choose images".into()),
                 1 => self.run_single(),
                 _ => self.run_batch(),
             },
