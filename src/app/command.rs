@@ -159,9 +159,20 @@ impl CommandArgs {
             None => PathBuf::from("."),
         };
 
-        let out_paths = create_paths(paths, output_path, self.extra_args.name_expr.as_deref())?;
+        let mut decoded_paths = Vec::new();
+        for task in tasks_queue.decoded_tasks().iter() {
+            decoded_paths.push(task.image_path.to_path_buf());
+        }
 
-        for (index, mut image) in good_images.iter_mut().enumerate() {
+        let out_paths = create_paths(
+            decoded_paths,
+            output_path,
+            self.extra_args.name_expr.as_deref(),
+        )?;
+
+        for (index, path) in out_paths.iter().enumerate() {
+            tasks_queue.set_out_path(tasks_queue.decoded_ids()[index], path);
+        }
             match &self.command {
                 Command::Convert => (),
                 Command::Resize(args) => args.run(&mut image)?,
