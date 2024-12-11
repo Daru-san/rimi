@@ -6,6 +6,18 @@ use anyhow::Result;
 use image::DynamicImage;
 
 #[derive(Debug)]
+pub struct BatchErrors(pub Vec<TaskError>);
+
+impl Error for BatchErrors {}
+
+impl Display for BatchErrors {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Errors occured while parsing images: {}", self.0.len())?;
+        for err in &self.0 {
+            writeln!(f, "{}", err.0)?
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, PartialEq)]
