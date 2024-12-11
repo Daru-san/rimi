@@ -5,7 +5,6 @@ mod resize;
 mod transparent;
 
 use completions::CompletionArgs;
-use image::DynamicImage;
 use info::InfoArgs;
 use recolor::RecolorArgs;
 use resize::ResizeArgs;
@@ -15,7 +14,7 @@ use clap::Parser;
 use std::error::Error;
 use std::path::PathBuf;
 
-use crate::app::state::AppState;
+use crate::app::state::{BatchErrors, TaskError, TaskQueue, TaskState};
 
 #[derive(Parser)]
 pub struct CommandArgs {
@@ -82,11 +81,8 @@ pub enum Command {
 }
 
 impl CommandArgs {
-    pub fn run(self) -> Result<(), Box<dyn Error>> {
-        if self.extra_args.format.is_some() && self.output.is_some() {
-            return Err("Select either format or output".into());
-        }
-        match self.command {
+    pub fn run(&self) -> Result<(), Box<dyn Error>> {
+        match &self.command {
             Command::Completions(args) => args.run(),
             Command::Info(args) => args.run(),
             _ => match self.images.len() {
