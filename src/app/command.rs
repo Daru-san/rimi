@@ -122,23 +122,36 @@ impl CommandArgs {
         use crate::utils::batch::*;
         use crate::utils::image::{open_image, save_image_format};
 
-        let mut good_images: Vec<DynamicImage> = Vec::new();
-        let mut image_errors = Vec::new();
-        let mut paths = Vec::new();
+        let num_images = self.images.len() - 1;
 
         for image in &self.images {
+        let mut tasks_queue = TaskQueue::new();
+        for (index, image) in self.images.iter().enumerate() {
+            let task_id = tasks_queue.new_task(image);
             let current_image = open_image(image.clone());
             match current_image {
                 Ok(good_image) => {
-                    good_images.push(good_image);
-                    paths.push(image.to_path_buf());
+                    tasks_queue.set_decoded(&good_image, task_id);
                 }
-                Err(e) => image_errors.push(e),
+                Err(error) => {
+                    tasks_queue.set_failed(task_id, error);
+                }
             }
         }
 
-        if self.abort_on_error {
-            return Err(Box::new(BatchError(image_errors)));
+        if tasks_queue.has_failures() {
+            if self.abort_on_error {
+                let mut total_errors = Vec::new();
+                for task in tasks_queue.failed_tasks().iter() {
+                    match &task.state {
+                        TaskState::Failed(error) => total_errors.push(TaskError(error.0.clone())),
+                        _ => (),
+                    }
+                }
+
+                return Err(Box::new(BatchErrors(total_errors)));
+            }
+        } else {
         }
 
         let output_path = match &self.output {
