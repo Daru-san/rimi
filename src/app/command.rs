@@ -173,11 +173,42 @@ impl CommandArgs {
         for (index, path) in out_paths.iter().enumerate() {
             tasks_queue.set_out_path(tasks_queue.decoded_ids()[index], path);
         }
+        let count = tasks_queue.decoded_tasks().len();
+        for index in 0..tasks_queue.decoded_tasks().len() {
+            let task_id = tasks_queue.decoded_tasks()[index].id;
+
+            let mut current_task = match tasks_queue.task_by_id_mut(task_id) {
+                Some(task) => task,
+                _ => return Err("No such task".into()),
+            };
             match &self.command {
                 Command::Convert => (),
-                Command::Resize(args) => args.run(&mut image)?,
-                Command::Recolor(args) => args.run(&mut image)?,
-                Command::Transparentize(args) => args.run(&mut image)?,
+                Command::Resize(args) => {
+                    match args.run(&mut current_task.image) {
+                        Ok(()) => current_task.state = TaskState::Processed,
+                        Err(e) => current_task.state = TaskState::Failed(TaskError(e.to_string())),
+                    }
+                }
+                Command::Recolor(args) => {
+                    match args.run(&mut current_task.image) {
+                        Ok(()) => current_task.state = TaskState::Processed,
+                        Err(e) => current_task.state = TaskState::Failed(TaskError(e.to_string())),
+                    }
+                }
+                Command::Transparentize(args) => {
+                    match args.run(&mut current_image_task.image) {
+                        Ok(()) => image_task.state = TaskState::Processed,
+                        Err(e) => image_task.state = TaskState::Failed(TaskError(e.to_string())),
+                    }
+                }
+                command => {
+                    return Err(format!("{:?} cannot be run with the batch flag", command).into());
+                }
+            };
+        }
+            match &self.command {
+                Command::Convert => (),
+                Command::Resize(args) => {
                 command => {
                     return Err(format!("{:?} cannot be run with the batch flag", command).into());
                 }
