@@ -15,6 +15,13 @@ pub fn create_paths(
         ));
     }
 
+    if dest_dir.is_file() {
+        return Err(format!(
+            "Directory specified is a file: {:?}",
+            dest_dir.as_os_str()
+        ));
+    }
+
     for (index, file) in files.iter().enumerate() {
         let mut path = dest_dir.join(file);
 
