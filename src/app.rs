@@ -1,4 +1,5 @@
 mod command;
+mod display;
 mod state;
 
 use clap::Parser;
