@@ -186,20 +186,31 @@ impl CommandArgs {
                 Command::Convert => (),
                 Command::Resize(args) => {
                     match args.run(&mut current_task.image) {
-                        Ok(()) => current_task.state = TaskState::Processed,
-                        Err(e) => current_task.state = TaskState::Failed(TaskError(e.to_string())),
+                        Ok(()) => {
+                            tasks_queue.set_processed(&current_task.image, task_id);
+                        Err(e) => {
+                            tasks_queue.set_failed(task_id, e.to_string());
+                        }
                     }
                 }
                 Command::Recolor(args) => {
                     match args.run(&mut current_task.image) {
-                        Ok(()) => current_task.state = TaskState::Processed,
-                        Err(e) => current_task.state = TaskState::Failed(TaskError(e.to_string())),
+                        Ok(()) => {
+                            tasks_queue.set_processed(&current_task.image, task_id);
+                        }
+                        Err(e) => {
+                            tasks_queue.set_failed(task_id, e.to_string());
+                        }
                     }
                 }
                 Command::Transparentize(args) => {
-                    match args.run(&mut current_image_task.image) {
-                        Ok(()) => image_task.state = TaskState::Processed,
-                        Err(e) => image_task.state = TaskState::Failed(TaskError(e.to_string())),
+                    match args.run(&mut current_task.image) {
+                        Ok(()) => {
+                            tasks_queue.set_processed(&current_task.image, task_id);
+                        }
+                        Err(e) => {
+                            tasks_queue.set_failed(task_id, e.to_string());
+                        }
                     }
                 }
                 command => {
