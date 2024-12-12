@@ -6,7 +6,7 @@ use std::error::Error;
 use std::io::stdout;
 use std::str::FromStr;
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 pub struct CompletionArgs {
     /// Shell to print completions for
     #[clap(value_enum)]
@@ -26,7 +26,7 @@ impl CompletionArgs {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct ShellExt {
     name: String,
 }
