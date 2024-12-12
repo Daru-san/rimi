@@ -176,9 +176,11 @@ impl CommandArgs {
         for index in 0..tasks_queue.decoded_tasks().len() {
             let task_id = tasks_queue.decoded_tasks()[index].id;
 
-            let mut current_task = match tasks_queue.task_by_id_mut(task_id) {
-                Some(task) => task,
-                _ => return Err("No such task".into()),
+            let mut current_task = {
+                match tasks_queue.task_by_id_mut(task_id) {
+                    Some(task) => task.clone(),
+                    _ => return Err("No such task".into()),
+                }
             };
             match &self.command {
                 Command::Convert => (),
