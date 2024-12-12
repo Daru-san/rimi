@@ -217,7 +217,6 @@ impl CommandArgs {
                     return Err(format!("{:?} cannot be run with the batch flag", command).into());
                 }
             };
-        }
             match &self.command {
                 Command::Convert => (),
                 Command::Resize(args) => {
