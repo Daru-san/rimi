@@ -120,9 +120,8 @@ impl TaskQueue {
 
     pub fn has_failures(&self) -> bool {
         for task in &self.tasks {
-            match task.state {
-                TaskState::Failed(_) => return true,
-                _ => (),
+            if let TaskState::Failed(_) = task.state {
+                return true;
             }
         }
         false
@@ -139,9 +138,8 @@ impl TaskQueue {
     pub fn failed_tasks(&self) -> Vec<&ImageTask> {
         let mut tasks = Vec::new();
         for task in &self.tasks {
-            match task.state {
-                TaskState::Failed(_) => tasks.push(task),
-                _ => (),
+            if let TaskState::Failed(_) = task.state {
+                tasks.push(task);
             }
         }
         tasks
@@ -150,9 +148,8 @@ impl TaskQueue {
     pub fn decoded_tasks(&self) -> Vec<&ImageTask> {
         let mut tasks = Vec::new();
         for task in &self.tasks {
-            match task.state {
-                TaskState::Decoded => tasks.push(task),
-                _ => (),
+            if let TaskState::Decoded = task.state {
+                tasks.push(task);
             }
         }
         tasks
@@ -161,9 +158,8 @@ impl TaskQueue {
     pub fn decoded_ids(&self) -> Vec<u32> {
         let mut ids = Vec::new();
         for task in &self.tasks {
-            match task.state {
-                TaskState::Decoded => ids.push(task.id),
-                _ => (),
+            if let TaskState::Decoded = task.state {
+                ids.push(task.id);
             }
         }
         ids
