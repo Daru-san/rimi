@@ -128,7 +128,7 @@ impl CommandArgs {
         let mut tasks_queue = TaskQueue::new();
         for (index, image) in self.images.iter().enumerate() {
             let task_id = tasks_queue.new_task(image);
-            let current_image = open_image(image.clone());
+            let current_image = open_image(image.to_path_buf());
             match current_image {
                 Ok(good_image) => {
                     tasks_queue.set_decoded(&good_image, task_id);
