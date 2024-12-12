@@ -217,7 +217,11 @@ impl CommandArgs {
                     return Err(format!("{:?} cannot be run with the batch flag", command).into());
                 }
             };
+            if let Some(task) = tasks_queue.task_by_id(task_id) {
+                if let TaskState::Failed(_) = task.state {
+                    continue;
                 }
+            }
         }
         Ok(())
     }
