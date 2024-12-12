@@ -214,7 +214,7 @@ impl CommandArgs {
                     }
                 }
                 command => {
-                    return Err(format!("{:?} cannot be run with the batch flag", command).into());
+                    return Err(format!("{:?} cannot be run right now", command).into());
                 }
             };
             if let Some(task) = tasks_queue.task_by_id(task_id) {
