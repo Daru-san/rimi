@@ -124,7 +124,6 @@ impl CommandArgs {
 
         let num_images = self.images.len() - 1;
 
-        for image in &self.images {
         let mut tasks_queue = TaskQueue::new();
         for (index, image) in self.images.iter().enumerate() {
             let task_id = tasks_queue.new_task(image);
