@@ -173,8 +173,11 @@ impl CommandArgs {
             tasks_queue.set_out_path(tasks_queue.decoded_ids()[index], path);
         }
         let count = tasks_queue.decoded_tasks().len();
-        for index in 0..tasks_queue.decoded_tasks().len() {
-            let task_id = tasks_queue.decoded_tasks()[index].id;
+
+        for index in 0..count {
+            let task_id = tasks_queue.decoded_tasks()[0].id;
+
+            let count = count - 1;
 
             let mut current_task = {
                 match tasks_queue.task_by_id_mut(task_id) {
@@ -182,6 +185,7 @@ impl CommandArgs {
                     _ => return Err("No such task".into()),
                 }
             };
+
             match &self.command {
                 Command::Convert => (),
                 Command::Resize(args) => {
