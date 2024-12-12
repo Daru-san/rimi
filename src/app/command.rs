@@ -6,7 +6,7 @@ mod transparent;
 
 use completions::CompletionArgs;
 use console::Style;
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::ProgressBar;
 use info::InfoArgs;
 use recolor::RecolorArgs;
 use resize::ResizeArgs;
@@ -17,7 +17,10 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use crate::app::state::{BatchErrors, TaskError, TaskQueue, TaskState};
+use crate::app::{
+    display::*,
+    state::{BatchErrors, TaskError, TaskQueue, TaskState},
+};
 
 #[derive(Parser)]
 pub struct CommandArgs {
@@ -98,100 +101,129 @@ impl CommandArgs {
 
     fn run_single(&self) -> Result<(), Box<dyn Error>> {
         use crate::utils::image::{open_image, save_image_format};
+
         let image_path = &self.images[0];
+
         let style = Style::new().blue().bold().underlined();
 
         let msg = style.apply_to("Starting 4 tasks");
+
         println!("{}", msg);
 
-        let progress = ProgressBar::new(4).with_style(
-            ProgressStyle::with_template("[{pos}/{len}] {msg} {bar:40.cyan/blue} [{duration}]")
-                .unwrap()
-                .progress_chars("##-"),
+        let global_progress = GlobalProgress::init();
+
+        global_progress.set_current_operation(
+            format!(
+                "Decoding image: {}",
+                image_path.to_path_buf().to_string_lossy()
+            )
+            .as_str(),
         );
 
-        progress.enable_steady_tick(Duration::from_millis(100));
-
-        progress.set_message(format!(
-            "Decoding image: {}",
-            image_path.to_path_buf().to_string_lossy()
-        ));
-
-        let mut image = open_image(image_path.to_path_buf())?;
-        progress.inc(1);
-        progress.println(format!(
-            "[{}/4] Image decoded successfully",
-            progress.position()
-        ));
+        let mut image = match open_image(image_path.to_path_buf()) {
+            Ok(image) => {
+                global_progress.complete_operation_with_message("Image decoded successfully");
+                image
+            }
+            Err(e) => {
+                global_progress.abort_message("Image decode failed");
+                return Err(e.into());
+            }
+        };
 
         let output_path = match &self.output {
             Some(path) => path,
             None => image_path,
         };
 
-        progress.inc(1);
-        progress.println(format!(
-            "[{}/{}] Set output path: {}",
-            progress.position(),
-            4,
-            output_path.to_path_buf().to_string_lossy()
-        ));
+        global_progress.complete_operation_with_message(
+            format!(
+                "Set output path: {}",
+                output_path.to_path_buf().to_string_lossy()
+            )
+            .as_str(),
+        );
 
         match &self.command {
             Command::Convert => match &self.extra_args.format {
-                Some(format) => progress.println(format!(
-                    "[{}/4] Coverting image: {} to format {}",
-                    progress.position(),
-                    image_path.to_path_buf().to_string_lossy(),
-                    format
-                )),
-                None => progress.println(format!(
-                    "[{}/4] Converting image: {} as image {}",
-                    progress.position(),
-                    image_path.to_path_buf().to_string_lossy(),
-                    output_path.to_path_buf().to_string_lossy()
-                )),
+                Some(format) => global_progress.complete_operation_with_message(
+                    format!(
+                        "Coverting image: {} to format {}",
+                        image_path.to_path_buf().to_string_lossy(),
+                        format
+                    )
+                    .as_str(),
+                ),
+                None => global_progress.complete_operation_with_message(
+                    format!(
+                        "Converting image: {} as image {}",
+                        image_path.to_path_buf().to_string_lossy(),
+                        output_path.to_path_buf().to_string_lossy()
+                    )
+                    .as_str(),
+                ),
             },
             Command::Resize(args) => {
-                progress.set_message("Resizing image");
-                args.run(&mut image)?;
-                progress.println(format!(
-                    "[{}/4] Image resized successfully!",
-                    progress.position()
-                ));
+                global_progress.set_current_operation("Resizing image");
+
+                match args.run(&mut image) {
+                    Ok(()) => {
+                        global_progress
+                            .complete_operation_with_message("Image resized successfully");
+                    }
+                    Err(e) => {
+                        global_progress.abort_message("Image resize failed with error.");
+                        return Err(e);
+                    }
+                }
             }
             Command::Recolor(args) => {
-                progress.set_message("Recoloring image");
-                args.run(&mut image)?;
-                progress.println(format!(
-                    "[{}/4] Image recolored successfully",
-                    progress.position()
-                ));
+                global_progress.set_current_operation("Recoloring image");
+                match args.run(&mut image) {
+                    Ok(()) => {
+                        global_progress.complete_operation_with_message("Image color changed.");
+                    }
+                    Err(e) => {
+                        global_progress.abort_message("Image recolor failed with error.");
+                        return Err(e);
+                    }
+                }
             }
             Command::Transparentize(args) => {
-                progress.set_message("Removing background");
-                args.run(&mut image)?;
-                progress.println(format!("[{}/4] Background removed", progress.position()));
+                global_progress.set_current_operation("Removing image background");
+                match args.run(&mut image) {
+                    Ok(()) => {
+                        global_progress.complete_operation_with_message("Image background removed.")
+                    }
+                    Err(e) => {
+                        global_progress.abort_message("Background removal failed.");
+                        return Err(e);
+                    }
+                }
             }
             _ => {}
         };
-        progress.inc(0x1);
-        progress.set_message(format!(
-            "Saving image: {}",
-            output_path.to_path_buf().to_string_lossy()
-        ));
+        global_progress.set_current_operation(
+            format!(
+                "Saving image: {}",
+                output_path.to_path_buf().to_string_lossy()
+            )
+            .as_str(),
+        );
 
-        save_image_format(
+        match save_image_format(
             &image,
             output_path,
             self.extra_args.format.as_deref(),
             self.extra_args.overwrite,
-        )?;
-        progress.println(format!(
-            "[{}/4] Image saved successfully",
-            progress.position()
-        ));
-        progress.finish_with_message("All image operations complete!");
+        ) {
+            Ok(()) => global_progress.complete_operation_with_message("Image saved successfully"),
+            Err(e) => {
+                global_progress.abort_message("Image failed to save");
+                return Err(e.into());
+            }
+        }
+        global_progress.complete();
         Ok(())
     }
 
