@@ -217,14 +217,7 @@ impl CommandArgs {
                     return Err(format!("{:?} cannot be run with the batch flag", command).into());
                 }
             };
-            match &self.command {
-                Command::Convert => (),
-                Command::Resize(args) => {
-                command => {
-                    return Err(format!("{:?} cannot be run with the batch flag", command).into());
                 }
-            };
-            save_image_format(image, &out_paths[index], None, self.extra_args.overwrite)?;
         }
         Ok(())
     }
