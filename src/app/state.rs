@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::fmt::Display;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use image::DynamicImage;
@@ -52,7 +52,7 @@ pub struct ImageTask {
 }
 
 impl ImageTask {
-    pub fn new(id: u32, path: &PathBuf) -> Self {
+    pub fn new(id: u32, path: &Path) -> Self {
         ImageTask {
             id,
             image: DynamicImage::default(),
@@ -77,7 +77,7 @@ impl TaskQueue {
         }
     }
 
-    pub fn new_task(&mut self, path: &PathBuf) -> u32 {
+    pub fn new_task(&mut self, path: &Path) -> u32 {
         let task = ImageTask::new(self.next_id, path);
         self.tasks.push(task);
         self.next_id += 1;
@@ -165,7 +165,7 @@ impl TaskQueue {
         ids
     }
 
-    pub fn set_out_path(&mut self, task_id: u32, path: &PathBuf) {
+    pub fn set_out_path(&mut self, task_id: u32, path: &Path) {
         for task in self.tasks.iter_mut() {
             if task.id == task_id {
                 task.out_path = path.to_path_buf();
