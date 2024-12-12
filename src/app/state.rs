@@ -135,11 +135,7 @@ impl TaskQueue {
     }
 
     pub fn count_failures(&self) -> usize {
-        if self.tasks.len() != 0 {
-            self.tasks.len() - 1
-        } else {
-            0
-        }
+        self.failed_tasks().len()
     }
 
     pub fn failed_tasks(&self) -> Vec<&ImageTask> {
