@@ -20,7 +20,7 @@ impl Display for BatchErrors {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct TaskError(pub String);
 
 impl Error for TaskError {}
@@ -34,7 +34,7 @@ impl Display for TaskError {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TaskState {
     Pending,
     Decoded,
@@ -42,7 +42,7 @@ pub enum TaskState {
     Failed(TaskError),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ImageTask {
     pub id: u32,
     pub image: DynamicImage,
