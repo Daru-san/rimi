@@ -40,6 +40,7 @@ pub enum TaskState {
     Decoded,
     Processed,
     Failed(TaskError),
+    Complete,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -90,6 +91,12 @@ impl TaskQueue {
 
     pub fn task_by_id(&self, task_id: u32) -> Option<&ImageTask> {
         self.tasks.iter().find(|task| task.id == task_id)
+    pub fn set_completed(&mut self, task_id: u32) {
+        for task in self.tasks.iter_mut() {
+            if task.id == task_id {
+                task.state = TaskState::Complete;
+            }
+        }
     }
 
     pub fn set_decoded(&mut self, decoded_image: &DynamicImage, task_id: u32) {
@@ -149,6 +156,16 @@ impl TaskQueue {
         let mut tasks = Vec::new();
         for task in &self.tasks {
             if let TaskState::Decoded = task.state {
+                tasks.push(task);
+            }
+        }
+        tasks
+    }
+
+    pub fn completed_tasks(&self) -> Vec<&ImageTask> {
+        let mut tasks = Vec::new();
+        for task in &self.tasks {
+            if let TaskState::Complete = task.state {
                 tasks.push(task);
             }
         }
