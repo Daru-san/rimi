@@ -188,6 +188,7 @@ impl CommandArgs {
                     match args.run(&mut current_task.image) {
                         Ok(()) => {
                             tasks_queue.set_processed(&current_task.image, task_id);
+                        }
                         Err(e) => {
                             tasks_queue.set_failed(task_id, e.to_string());
                         }
