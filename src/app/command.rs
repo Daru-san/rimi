@@ -143,9 +143,8 @@ impl CommandArgs {
             if self.abort_on_error {
                 let mut total_errors = Vec::new();
                 for task in tasks_queue.failed_tasks().iter() {
-                    match &task.state {
-                        TaskState::Failed(error) => total_errors.push(TaskError(error.0.clone())),
-                        _ => (),
+                    if let TaskState::Failed(error) = &task.state {
+                        total_errors.push(TaskError(error.0.clone()));
                     }
                 }
 
