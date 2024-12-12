@@ -222,6 +222,21 @@ impl CommandArgs {
                     continue;
                 }
             }
+            let image_result = save_image_format(
+                &current_task.image,
+                &current_task.out_path,
+                self.extra_args.format.as_deref(),
+                self.extra_args.overwrite,
+            );
+
+            match image_result {
+                Ok(()) => {
+                    tasks_queue.set_completed(task_id);
+                }
+                Err(e) => {
+                    tasks_queue.set_failed(task_id, e.to_string());
+                }
+            }
         }
         Ok(())
     }
