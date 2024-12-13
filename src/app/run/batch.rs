@@ -115,10 +115,8 @@ impl RunBatch for CommandArgs {
 
         batch_progress.start_operation(format!("Processing {} images", count).as_str());
 
-        for index in 0..count {
+        for _ in 0..count {
             let task_id = tasks_queue.decoded_tasks()[0].id;
-
-            let count = count - 1;
 
             let mut current_task = {
                 match tasks_queue.task_by_id_mut(task_id) {
