@@ -1,6 +1,5 @@
 mod command;
-mod display;
-mod state;
+mod run;
 
 use clap::Parser;
 use std::error::Error;
