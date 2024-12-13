@@ -80,7 +80,7 @@ impl RunSingle for CommandArgs {
                     }
                     Err(e) => {
                         single_progress.abort_message("Image resize failed with error.");
-                        return Err(e.into());
+                        return Err(e);
                     }
                 }
             }
