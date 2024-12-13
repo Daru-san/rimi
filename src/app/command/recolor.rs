@@ -1,7 +1,7 @@
 use crate::utils::color::ColorInfo;
+use anyhow::Result;
 use clap::Parser;
 use image::DynamicImage;
-use std::error::Error;
 
 #[derive(Parser, Debug)]
 pub struct RecolorArgs {
@@ -11,7 +11,7 @@ pub struct RecolorArgs {
 }
 
 impl RecolorArgs {
-    pub fn run(&self, image: &mut DynamicImage) -> Result<(), Box<dyn Error>> {
+    pub fn run(&self, image: &mut DynamicImage) -> Result<()> {
         self.color_type.convert_image(image);
         Ok(())
     }

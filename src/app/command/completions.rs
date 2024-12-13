@@ -1,8 +1,9 @@
 use crate::app;
+use crate::backend::error::AppError;
+use anyhow::Result;
 use clap::{CommandFactory, Parser};
 use clap_complete::{generate, Shell};
 use clap_complete_nushell::Nushell;
-use std::error::Error;
 use std::io::stdout;
 use std::str::FromStr;
 
@@ -14,13 +15,13 @@ pub struct CompletionArgs {
 }
 
 impl CompletionArgs {
-    pub fn run(&self) -> Result<(), Box<dyn Error>> {
+    pub fn run(&self) -> Result<()> {
         match self.shell.return_shell() {
             Ok((None, Some(shell))) => {
                 generate(shell, &mut app::Args::command(), "rimi", &mut stdout())
             }
             Ok((_, None)) => generate(Nushell, &mut app::Args::command(), "rimi", &mut stdout()),
-            _ => return Err("Unkown shell".into()),
+            _ => return Err(AppError::UnknownShell.into()),
         }
         Ok(())
     }
@@ -62,7 +63,7 @@ impl FromStr for ShellExt {
 }
 
 impl ShellExt {
-    fn return_shell(&self) -> Result<(Option<Nushell>, Option<Shell>), Box<dyn Error>> {
+    fn return_shell(&self) -> Result<(Option<Nushell>, Option<Shell>)> {
         match self.name.to_uppercase().as_str() {
             "BASH" => Ok((None, Some(Shell::Bash))),
             "ZSH" => Ok((None, Some(Shell::Zsh))),
@@ -71,7 +72,7 @@ impl ShellExt {
             "FISH" => Ok((None, Some(Shell::Fish))),
             "NUSHELL" => Ok((Some(Nushell), None)),
             "ELVISH" => Ok((None, Some(Shell::Elvish))),
-            _ => Err("Unknown shell".into()),
+            _ => Err(AppError::UnknownShell.into()),
         }
     }
 }
