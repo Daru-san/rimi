@@ -1,5 +1,6 @@
 use super::RunSingle;
 use crate::app::command::{Command, CommandArgs};
+use crate::backend::error::TaskError;
 use crate::backend::progress::AppProgress;
 use crate::backend::progress::SingleProgress;
 use console::Style;
@@ -33,7 +34,7 @@ impl RunSingle for CommandArgs {
             }
             Err(e) => {
                 single_progress.abort_message("Image decode failed");
-                return Err(e.into());
+                return Err(TaskError::SingleError(e).into());
             }
         };
 
@@ -79,7 +80,7 @@ impl RunSingle for CommandArgs {
                     }
                     Err(e) => {
                         single_progress.abort_message("Image resize failed with error.");
-                        return Err(e);
+                        return Err(e.into());
                     }
                 }
             }
@@ -126,7 +127,7 @@ impl RunSingle for CommandArgs {
             Ok(()) => single_progress.complete_operation_with_message("Image saved successfully"),
             Err(e) => {
                 single_progress.abort_message("Image failed to save");
-                return Err(e.into());
+                return Err(TaskError::SingleError(e).into());
             }
         }
         single_progress.complete();
