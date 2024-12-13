@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use crate::app::command::{Command, CommandArgs};
+use crate::backend::error::TaskError;
 use crate::backend::progress::{AppProgress, BatchProgress};
 use crate::backend::queue::{TaskQueue, TaskState};
 
