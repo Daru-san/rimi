@@ -1,12 +1,12 @@
 use super::RunSingle;
-use crate::app::command::{Command, CommandArgs};
+use crate::app::command::{ImageArgs, ImageCommand};
 use crate::backend::error::TaskError;
 use crate::backend::progress::AppProgress;
 use crate::backend::progress::SingleProgress;
 use console::Style;
 
-impl RunSingle for CommandArgs {
-    fn run_single(&self) -> anyhow::Result<()> {
+impl RunSingle for ImageArgs {
+    fn run_single(&self, command: &ImageCommand, verbosity: u32) -> anyhow::Result<()> {
         use crate::utils::image::{open_image, save_image_format};
 
         let image_path = &self.images[0];
@@ -17,7 +17,7 @@ impl RunSingle for CommandArgs {
 
         println!("{}", msg);
 
-        let single_progress = SingleProgress::init();
+        let single_progress = SingleProgress::init(verbosity);
 
         single_progress.start_operation(
             format!(
@@ -51,8 +51,8 @@ impl RunSingle for CommandArgs {
             .as_str(),
         );
 
-        match &self.command {
-            Command::Convert => match &self.extra_args.format {
+        match command {
+            ImageCommand::Convert => match &self.format {
                 Some(format) => single_progress.complete_operation_with_message(
                     format!(
                         "Coverting image: {} to format {}",
@@ -70,7 +70,7 @@ impl RunSingle for CommandArgs {
                     .as_str(),
                 ),
             },
-            Command::Resize(args) => {
+            ImageCommand::Resize(args) => {
                 single_progress.start_operation("Resizing image");
 
                 match args.run(&mut image) {
@@ -84,7 +84,7 @@ impl RunSingle for CommandArgs {
                     }
                 }
             }
-            Command::Recolor(args) => {
+            ImageCommand::Recolor(args) => {
                 single_progress.start_operation("Recoloring image");
                 match args.run(&mut image) {
                     Ok(()) => {
@@ -96,7 +96,7 @@ impl RunSingle for CommandArgs {
                     }
                 }
             }
-            Command::Transparentize(args) => {
+            ImageCommand::Transparentize(args) => {
                 single_progress.start_operation("Removing image background");
                 match args.run(&mut image) {
                     Ok(()) => {
@@ -108,7 +108,6 @@ impl RunSingle for CommandArgs {
                     }
                 }
             }
-            _ => {}
         };
         single_progress.start_operation(
             format!(
@@ -118,12 +117,7 @@ impl RunSingle for CommandArgs {
             .as_str(),
         );
 
-        match save_image_format(
-            &image,
-            output_path,
-            self.extra_args.format.as_deref(),
-            self.extra_args.overwrite,
-        ) {
+        match save_image_format(&image, output_path, self.format.as_deref(), self.overwrite) {
             Ok(()) => single_progress.complete_operation_with_message("Image saved successfully"),
             Err(e) => {
                 single_progress.abort_message("Image failed to save");
