@@ -60,7 +60,6 @@ impl ImageTask {
     }
 }
 
-#[derive(Debug)]
 pub struct TaskQueue {
     tasks: Vec<ImageTask>,
     next_id: u32,
