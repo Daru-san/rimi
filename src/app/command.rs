@@ -10,7 +10,7 @@ use recolor::RecolorArgs;
 use resize::ResizeArgs;
 use transparent::TransparentArgs;
 
-use clap::Parser;
+use clap::{ArgGroup, CommandFactory, Parser, Subcommand};
 use std::path::PathBuf;
 
 use anyhow::Result;
@@ -21,15 +21,27 @@ use super::run::{RunBatch, RunSingle};
 
 #[derive(Parser)]
 pub struct CommandArgs {
-    #[command(subcommand)]
-    pub command: Command,
+    #[clap(flatten)]
+    misc_args: MiscArgs,
 
-    /// Number of images to process in parallel
-    #[clap(short, long, hide = true, default_value = "1", global = true)]
-    pub parallel_images: u32,
+    /// Verbosity arguments
+    #[clap(flatten)]
+    verbosity_args: VerbosityArgs,
+
+    /// Image manipulation arguments
+    #[clap(flatten)]
+    pub image_args: ImageArgs,
+}
+
+/// Image manipulation arguments
+#[derive(Parser, Debug)]
+#[clap(group = ArgGroup::new("image_group").conflicts_with("app_group"))]
+pub struct ImageArgs {
+    #[command(subcommand)]
+    pub image_command: Option<ImageCommand>,
 
     /// Images to be converted
-    #[clap(short,long,value_parser,num_args = 1..1000,value_delimiter = ' ',required = false,global = true)]
+    #[clap(short,long,value_parser,num_args = 1..1000,value_delimiter = ' ',global = true)]
     pub images: Vec<PathBuf>,
 
     /// Output path, use a directory when batch converting, cannot be used with format
@@ -40,12 +52,6 @@ pub struct CommandArgs {
     #[clap(short, long)]
     pub abort_on_error: bool,
 
-    #[clap(flatten)]
-    pub extra_args: ExtraArgs,
-}
-
-#[derive(Parser, Debug)]
-pub struct ExtraArgs {
     /// Overwrite existing images
     #[clap(short = 'x', long, global = true)]
     pub overwrite: bool,
@@ -54,13 +60,23 @@ pub struct ExtraArgs {
     #[clap(short, long, global = true)]
     pub name_expr: Option<String>,
 
-    /// Output image(s) format, cannot be used with output
+    /// Output image(s) format
     #[clap(short, long, global = true)]
     pub format: Option<String>,
 }
 
-#[derive(Parser, Debug)]
-pub enum Command {
+#[derive(Parser)]
+struct VerbosityArgs {
+    #[clap(short, long)]
+    quiet: bool,
+
+    /// Very verbose output
+    #[clap(short, long)]
+    verbose: bool,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ImageCommand {
     /// Convert an image
     #[clap(short_flag = 'c')]
     Convert,
@@ -69,15 +85,25 @@ pub enum Command {
     #[clap(short_flag = 'r')]
     Resize(ResizeArgs),
 
-    /// Show image information
-    Info(InfoArgs),
-
     /// Remove the background from an image
     #[clap(short_flag = 't')]
     Transparentize(TransparentArgs),
 
     /// Modify the image color type
     Recolor(RecolorArgs),
+}
+
+#[derive(Parser, Debug)]
+#[clap(group = ArgGroup::new("app_group").conflicts_with("image_group"))]
+struct MiscArgs {
+    #[command(subcommand)]
+    pub command: Option<AppCommand>,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum AppCommand {
+    /// Show image information
+    Info(InfoArgs),
 
     /// Print shell completions
     Completions(CompletionArgs),
@@ -85,13 +111,23 @@ pub enum Command {
 
 impl CommandArgs {
     pub fn run(&self) -> Result<()> {
-        match &self.command {
-            Command::Completions(args) => args.run(),
-            Command::Info(args) => args.run(),
-            _ => match self.images.len() {
-                0 => Err(AppError::NoImages.into()),
-                1 => Ok(self.run_single()?),
-                _ => Ok(self.run_batch()?),
+        let verbosity = if self.verbosity_args.quiet {
+            0
+        } else if self.verbosity_args.verbose {
+            2
+        } else {
+            1
+        };
+        match &self.misc_args.command {
+            Some(AppCommand::Completions(args)) => args.run(),
+            Some(AppCommand::Info(args)) => args.run(),
+            None => match &self.image_args.image_command {
+                Some(command) => match self.image_args.images.len() {
+                    0 => Err(AppError::NoImages.into()),
+                    1 => Ok(self.image_args.run_single(command, verbosity)?),
+                    _ => Ok(self.image_args.run_batch(command, verbosity)?),
+                },
+                None => Ok(clap::Command::print_help(&mut super::Args::command())?),
             },
         }
     }
