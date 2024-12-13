@@ -121,9 +121,7 @@ impl RunBatch for CommandArgs {
             let mut current_task = {
                 match tasks_queue.task_by_id_mut(task_id) {
                     Some(task) => task.clone(),
-                    _ => {
-                        return Err(TaskError::SingleError("Task does not exist".to_string()).into())
-                    }
+                    _ => return Err(TaskError::NoSuchTask.into()),
                 }
             };
 
