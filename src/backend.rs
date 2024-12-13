@@ -1,3 +1,3 @@
-mod error;
+pub mod error;
 pub mod progress;
 pub mod queue;
