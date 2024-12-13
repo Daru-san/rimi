@@ -40,15 +40,7 @@ impl RunBatch for CommandArgs {
                     tasks_queue.set_decoded(&good_image, task_id);
                 }
                 Err(error) => {
-                    batch_progress.error_sub_operation(
-                        format!(
-                            "[{}/{}] Failed to decode image: {:?}",
-                            index,
-                            num_images,
-                            image.file_name().as_slice()
-                        )
-                        .as_str(),
-                    );
+                    batch_progress.error_sub_operation(error.as_str());
                     tasks_queue.set_failed(task_id, error);
                 }
             }
