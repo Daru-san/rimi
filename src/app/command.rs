@@ -45,7 +45,7 @@ pub struct CommandArgs {
 }
 
 #[derive(Parser, Debug)]
-struct ExtraArgs {
+pub struct ExtraArgs {
     /// Overwrite existing images
     #[clap(short = 'x', long, global = true)]
     pub overwrite: bool,
