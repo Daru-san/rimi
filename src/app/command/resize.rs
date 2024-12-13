@@ -1,7 +1,8 @@
+use crate::backend::error::TaskError;
 use crate::utils::image::{resize_image, Dimensions};
+use anyhow::Result;
 use clap::Parser;
 use image::DynamicImage;
-use std::error::Error;
 
 #[derive(Parser, Debug)]
 pub struct ResizeArgs {
@@ -21,8 +22,8 @@ pub struct ResizeArgs {
 }
 
 impl ResizeArgs {
-    pub fn run(&self, image: &mut DynamicImage) -> Result<(), Box<dyn Error>> {
-        resize_image(
+    pub fn run(&self, image: &mut DynamicImage) -> Result<()> {
+        match resize_image(
             image,
             Dimensions {
                 x: self.width,
@@ -30,7 +31,9 @@ impl ResizeArgs {
             },
             self.filter.to_string(),
             self.preserve_aspect,
-        )?;
-        Ok(())
+        ) {
+            Ok(()) => Ok(()),
+            Err(e) => Err(TaskError::SingleError(e).into()),
+        }
     }
 }

@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use crate::app::command::{Command, CommandArgs};
+use crate::backend::error::TaskError;
 use crate::backend::progress::{AppProgress, BatchProgress};
 use crate::backend::queue::{TaskQueue, TaskState};
 
@@ -39,15 +40,7 @@ impl RunBatch for CommandArgs {
                     tasks_queue.set_decoded(&good_image, task_id);
                 }
                 Err(error) => {
-                    batch_progress.error_sub_operation(
-                        format!(
-                            "[{}/{}] Failed to decode image: {:?}",
-                            index,
-                            num_images,
-                            image.file_name().as_slice()
-                        )
-                        .as_str(),
-                    );
+                    batch_progress.error_sub_operation(error.as_str());
                     tasks_queue.set_failed(task_id, error);
                 }
             }
@@ -67,11 +60,11 @@ impl RunBatch for CommandArgs {
                 let mut total_errors = Vec::new();
                 for task in tasks_queue.failed_tasks().iter() {
                     if let TaskState::Failed(error) = &task.state {
-                        total_errors.push(TaskError(error.0.clone()));
+                        total_errors.push(error.to_string());
                     }
                 }
 
-                return Err(Box::new(BatchErrors(total_errors)));
+                return Err(TaskError::BatchError(total_errors).into());
             }
         } else {
             batch_progress.complete_operation_with_message(
@@ -95,11 +88,14 @@ impl RunBatch for CommandArgs {
             decoded_paths.push(task.image_path.to_path_buf());
         }
 
-        let out_paths = create_paths(
+        let out_paths = match create_paths(
             decoded_paths,
             output_path,
             self.extra_args.name_expr.as_deref(),
-        )?;
+        ) {
+            Ok(out_paths) => out_paths,
+            Err(e) => return Err(TaskError::SingleError(e).into()),
+        };
 
         for (index, path) in out_paths.iter().enumerate() {
             tasks_queue.set_out_path(tasks_queue.decoded_ids()[index], path);
@@ -111,15 +107,13 @@ impl RunBatch for CommandArgs {
 
         batch_progress.start_operation(format!("Processing {} images", count).as_str());
 
-        for index in 0..count {
+        for _ in 0..count {
             let task_id = tasks_queue.decoded_tasks()[0].id;
-
-            let count = count - 1;
 
             let mut current_task = {
                 match tasks_queue.task_by_id_mut(task_id) {
                     Some(task) => task.clone(),
-                    _ => return Err("No such task".into()),
+                    _ => return Err(TaskError::NoSuchTask.into()),
                 }
             };
 
@@ -201,7 +195,11 @@ impl RunBatch for CommandArgs {
                     }
                 }
                 command => {
-                    return Err(format!("{:?} cannot be run right now", command).into());
+                    return Err(TaskError::SingleError(format!(
+                        "{:?} command cannot be run here.",
+                        command
+                    ))
+                    .into());
                 }
             };
 
@@ -251,7 +249,6 @@ impl RunBatch for CommandArgs {
         }
         if !tasks_queue.completed_tasks().is_empty() {
             batch_progress.complete();
-            t
         }
         Ok(())
     }

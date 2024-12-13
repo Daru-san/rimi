@@ -11,10 +11,11 @@ use resize::ResizeArgs;
 use transparent::TransparentArgs;
 
 use clap::Parser;
-use std::error::Error;
 use std::path::PathBuf;
 
 use anyhow::Result;
+
+use crate::backend::error::AppError;
 
 use super::run::{RunBatch, RunSingle};
 
@@ -44,7 +45,7 @@ pub struct CommandArgs {
 }
 
 #[derive(Parser, Debug)]
-struct ExtraArgs {
+pub struct ExtraArgs {
     /// Overwrite existing images
     #[clap(short = 'x', long, global = true)]
     pub overwrite: bool,
@@ -83,12 +84,12 @@ pub enum Command {
 }
 
 impl CommandArgs {
-    pub fn run(&self) -> Result<(), Box<dyn Error>> {
+    pub fn run(&self) -> Result<()> {
         match &self.command {
             Command::Completions(args) => args.run(),
             Command::Info(args) => args.run(),
             _ => match self.images.len() {
-                0 => Err("Please add images".into()),
+                0 => Err(AppError::NoImages.into()),
                 1 => Ok(self.run_single()?),
                 _ => Ok(self.run_batch()?),
             },

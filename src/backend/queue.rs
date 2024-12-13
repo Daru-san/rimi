@@ -1,34 +1,8 @@
-use std::error::Error;
-use std::fmt::Display;
 use std::path::{Path, PathBuf};
 
 use image::DynamicImage;
 
-#[derive(Debug)]
-pub struct BatchErrors(pub Vec<TaskError>);
-
-impl Error for BatchErrors {}
-
-impl Display for BatchErrors {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Errors occured while parsing images: {}", self.0.len())?;
-        for err in &self.0 {
-            writeln!(f, "{}", err.0)?
-        }
-        Ok(())
-    }
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct TaskError(pub String);
-
-impl Error for TaskError {}
-
-impl Display for TaskError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Image processing failed due to error: {}", self.0)
-    }
-}
+use super::error::TaskError;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TaskState {
@@ -108,7 +82,7 @@ impl TaskQueue {
     pub fn set_failed(&mut self, task_id: u32, task_error: String) {
         for task in self.tasks.iter_mut() {
             if task.id == task_id {
-                task.state = TaskState::Failed(TaskError(task_error.to_string()));
+                task.state = TaskState::Failed(TaskError::SingleError(task_error.to_string()));
             }
         }
     }
