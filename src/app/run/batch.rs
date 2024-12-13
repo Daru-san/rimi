@@ -67,11 +67,11 @@ impl RunBatch for CommandArgs {
                 let mut total_errors = Vec::new();
                 for task in tasks_queue.failed_tasks().iter() {
                     if let TaskState::Failed(error) = &task.state {
-                        total_errors.push(TaskError(error.0.clone()));
+                        total_errors.push(error.to_string());
                     }
                 }
 
-                return Err(Box::new(BatchErrors(total_errors)));
+                return Err(TaskError::BatchError(total_errors).into());
             }
         } else {
             batch_progress.complete_operation_with_message(
@@ -95,11 +95,14 @@ impl RunBatch for CommandArgs {
             decoded_paths.push(task.image_path.to_path_buf());
         }
 
-        let out_paths = create_paths(
+        let out_paths = match create_paths(
             decoded_paths,
             output_path,
             self.extra_args.name_expr.as_deref(),
-        )?;
+        ) {
+            Ok(out_paths) => out_paths,
+            Err(e) => return Err(TaskError::SingleError(e).into()),
+        };
 
         for (index, path) in out_paths.iter().enumerate() {
             tasks_queue.set_out_path(tasks_queue.decoded_ids()[index], path);
@@ -119,7 +122,9 @@ impl RunBatch for CommandArgs {
             let mut current_task = {
                 match tasks_queue.task_by_id_mut(task_id) {
                     Some(task) => task.clone(),
-                    _ => return Err("No such task".into()),
+                    _ => {
+                        return Err(TaskError::SingleError("Task does not exist".to_string()).into())
+                    }
                 }
             };
 
@@ -201,7 +206,11 @@ impl RunBatch for CommandArgs {
                     }
                 }
                 command => {
-                    return Err(format!("{:?} cannot be run right now", command).into());
+                    return Err(TaskError::SingleError(format!(
+                        "{:?} command cannot be run here.",
+                        command
+                    ))
+                    .into());
                 }
             };
 
@@ -251,7 +260,6 @@ impl RunBatch for CommandArgs {
         }
         if !tasks_queue.completed_tasks().is_empty() {
             batch_progress.complete();
-            t
         }
         Ok(())
     }
