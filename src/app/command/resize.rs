@@ -33,7 +33,7 @@ impl ResizeArgs {
             self.preserve_aspect,
         ) {
             Ok(()) => Ok(()),
-            Err(e) => Err(TaskError::SingleError(e).into()),
+            Err(resize_error) => Err(TaskError::SingleError(resize_error).into()),
         }
     }
 }

@@ -14,6 +14,7 @@ impl RunBatch for ImageArgs {
         use crate::utils::image::{open_image, save_image_format};
 
         let num_images = self.images.len() - 1;
+
         const TASK_COUNT: usize = 3;
 
         let mut tasks_queue = TaskQueue::new();
@@ -39,9 +40,9 @@ impl RunBatch for ImageArgs {
                 Ok(good_image) => {
                     tasks_queue.set_decoded(&good_image, task_id);
                 }
-                Err(error) => {
-                    batch_progress.error_sub_operation(error.as_str());
-                    tasks_queue.set_failed(task_id, error);
+                Err(decode_error) => {
+                    batch_progress.error_sub_operation(decode_error.as_str());
+                    tasks_queue.set_failed(task_id, decode_error);
                 }
             }
         }
@@ -89,7 +90,7 @@ impl RunBatch for ImageArgs {
 
         let out_paths = match create_paths(decoded_paths, output_path, self.name_expr.as_deref()) {
             Ok(out_paths) => out_paths,
-            Err(e) => return Err(TaskError::SingleError(e).into()),
+            Err(path_create_error) => return Err(TaskError::SingleError(path_create_error).into()),
         };
 
         for (index, path) in out_paths.iter().enumerate() {
@@ -98,13 +99,13 @@ impl RunBatch for ImageArgs {
 
         batch_progress.complete_operation_with_message("Paths created successfully.");
 
-        let count = tasks_queue.decoded_tasks().len();
+        let decoded_tasks = tasks_queue.decoded_tasks().len();
 
-        batch_progress.start_operation(format!("Processing {} images", count).as_str());
+        batch_progress.start_operation(format!("Processing {} images", decoded_tasks).as_str());
 
-        batch_progress.set_sub_op_count(count);
+        batch_progress.set_sub_op_count(decoded_tasks);
 
-        for _ in 0..count {
+        for _ in 0..decoded_tasks {
             let task_id = tasks_queue.decoded_tasks()[0].id;
 
             let mut current_task = {
@@ -146,8 +147,8 @@ impl RunBatch for ImageArgs {
                             tasks_queue.set_processed(&current_task.image, task_id);
                             batch_progress.complete_sub_operation("Image resized successfully");
                         }
-                        Err(e) => {
-                            tasks_queue.set_failed(task_id, e.to_string());
+                        Err(resize_error) => {
+                            tasks_queue.set_failed(task_id, resize_error.to_string());
                             batch_progress.error_sub_operation("Image resize exited with error.");
                         }
                     }
@@ -165,8 +166,8 @@ impl RunBatch for ImageArgs {
                             tasks_queue.set_processed(&current_task.image, task_id);
                             batch_progress.complete_sub_operation("Image recolored successfully.");
                         }
-                        Err(e) => {
-                            tasks_queue.set_failed(task_id, e.to_string());
+                        Err(recolor_error) => {
+                            tasks_queue.set_failed(task_id, recolor_error.to_string());
                             batch_progress.error_sub_operation("Image recolor exited with error.")
                         }
                     }
@@ -184,8 +185,8 @@ impl RunBatch for ImageArgs {
                             tasks_queue.set_processed(&current_task.image, task_id);
                             batch_progress.complete_sub_operation("Image background removed.");
                         }
-                        Err(e) => {
-                            tasks_queue.set_failed(task_id, e.to_string());
+                        Err(removal_error) => {
+                            tasks_queue.set_failed(task_id, removal_error.to_string());
                             batch_progress
                                 .error_sub_operation("Background removal exited with error.");
                         }
@@ -225,8 +226,8 @@ impl RunBatch for ImageArgs {
                         .as_str(),
                     );
                 }
-                Err(e) => {
-                    tasks_queue.set_failed(task_id, e.to_string());
+                Err(save_error) => {
+                    tasks_queue.set_failed(task_id, save_error.to_string());
                     batch_progress.error_sub_operation(
                         format!(
                             "Image processing failed with error: {:?}",

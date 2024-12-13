@@ -18,7 +18,7 @@ impl InfoArgs {
     pub fn run(&self) -> Result<()> {
         let image = match open_image(self.image_file.clone()) {
             Ok(image) => image,
-            Err(e) => return Err(TaskError::SingleError(e).into()),
+            Err(decode_error) => return Err(TaskError::SingleError(decode_error).into()),
         };
         print_info(&image, self.image_file.to_path_buf(), self.short);
         Ok(())

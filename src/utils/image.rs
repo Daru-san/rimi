@@ -9,12 +9,18 @@ pub fn open_image(image_path: PathBuf) -> Result<DynamicImage, String> {
     match ImageReader::open(&image_path) {
         Ok(reader) => match reader.decode() {
             Ok(image) => Ok(image),
-            Err(e) => Err(format!("Error decoding image {:?}: {}", image_path, e)),
+            Err(decode_error) => Err(format!(
+                "Error decoding image {:?}: {}",
+                image_path, decode_error
+            )),
         },
-        Err(e) => match e.kind() {
+        Err(file_error) => match file_error.kind() {
             ErrorKind::NotFound => Err(format!("File not found {:?}", image_path)),
             ErrorKind::PermissionDenied => Err(format!("Permission denied: {:?}", image_path)),
-            _ => Err(format!("Error opening image {:?}: {}", image_path, e)),
+            _ => Err(format!(
+                "Error opening image {:?}: {}",
+                image_path, file_error
+            )),
         },
     }
 }
@@ -28,10 +34,10 @@ pub fn save_image_format(
     let mut out_path = PathBuf::from(out);
     let img_format;
 
-    if let Some(s) = format {
-        img_format = match ImageFormat::from_extension(s) {
+    if let Some(path) = path {
+        img_format = match ImageFormat::from_extension(path) {
             Some(format) => format,
-            _ => return Err(format!("Couldn't get image format from extension: {}", s)),
+            _ => return Err(path!("Couldn't get image format from extension: {}", path)),
         };
         let extension = img_format.extensions_str();
         if extension.is_empty() {
@@ -50,7 +56,10 @@ pub fn save_image_format(
             if overwrite {
                 match image.save_with_format(&out_path, img_format) {
                     Ok(()) => Ok(()),
-                    Err(e) => Err(format!("Error saving image file {:?}: {}", out_path, e)),
+                    Err(save_error) => Err(format!(
+                        "Error saving image file {:?}: {}",
+                        out_path, save_error
+                    )),
                 }
             } else {
                 Err("Not overriding existing file.".to_string())
@@ -144,11 +153,11 @@ fn overwrite_if_existing(path: &Path, do_overwrite: bool) -> Result<bool, String
                 let confirm = Confirm::new().with_prompt(message).interact();
                 match confirm {
                     Ok(val) => Ok(val),
-                    Err(e) => Err(e.to_string()),
+                    Err(confirm_error) => Err(confirm_error.to_string()),
                 }
             }
             false => Ok(true),
         },
-        Err(e) => Err(e.to_string()),
+        Err(path_error) => Err(path_error.to_string()),
     }
 }

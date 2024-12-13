@@ -32,9 +32,9 @@ impl RunSingle for ImageArgs {
                 single_progress.complete_operation_with_message("Image decoded successfully");
                 image
             }
-            Err(e) => {
+            Err(decode_error) => {
                 single_progress.abort_message("Image decode failed");
-                return Err(TaskError::SingleError(e).into());
+                return Err(TaskError::SingleError(decode_error).into());
             }
         };
 
@@ -78,9 +78,9 @@ impl RunSingle for ImageArgs {
                         single_progress
                             .complete_operation_with_message("Image resized successfully");
                     }
-                    Err(e) => {
+                    Err(resize_error) => {
                         single_progress.abort_message("Image resize failed with error.");
-                        return Err(e);
+                        return Err(resize_error);
                     }
                 }
             }
@@ -90,9 +90,9 @@ impl RunSingle for ImageArgs {
                     Ok(()) => {
                         single_progress.complete_operation_with_message("Image color changed.");
                     }
-                    Err(e) => {
+                    Err(recolor_error) => {
                         single_progress.abort_message("Image recolor failed with error.");
-                        return Err(e);
+                        return Err(recolor_error);
                     }
                 }
             }
@@ -102,9 +102,9 @@ impl RunSingle for ImageArgs {
                     Ok(()) => {
                         single_progress.complete_operation_with_message("Image background removed.")
                     }
-                    Err(e) => {
+                    Err(removal_error) => {
                         single_progress.abort_message("Background removal failed.");
-                        return Err(e);
+                        return Err(removal_error);
                     }
                 }
             }
@@ -119,9 +119,9 @@ impl RunSingle for ImageArgs {
 
         match save_image_format(&image, output_path, self.format.as_deref(), self.overwrite) {
             Ok(()) => single_progress.complete_operation_with_message("Image saved successfully"),
-            Err(e) => {
+            Err(save_error) => {
                 single_progress.abort_message("Image failed to save");
-                return Err(TaskError::SingleError(e).into());
+                return Err(TaskError::SingleError(save_error).into());
             }
         }
         single_progress.complete();
