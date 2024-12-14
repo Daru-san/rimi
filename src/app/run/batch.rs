@@ -34,7 +34,7 @@ impl RunBatch for ImageArgs {
                 format!("Decoding image: {:?}", image.file_name().as_slice()).as_str(),
             );
 
-            let current_image = open_image(image.to_path_buf());
+            let current_image = open_image(image);
 
             match current_image {
                 Ok(good_image) => {

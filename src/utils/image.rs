@@ -5,7 +5,7 @@ use image::{self, DynamicImage, ImageFormat, ImageReader};
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
-pub fn open_image(image_path: PathBuf) -> Result<DynamicImage, String> {
+pub fn open_image(image_path: &Path) -> Result<DynamicImage, String> {
     match ImageReader::open(&image_path) {
         Ok(reader) => match reader.decode() {
             Ok(image) => Ok(image),
@@ -27,7 +27,7 @@ pub fn open_image(image_path: PathBuf) -> Result<DynamicImage, String> {
 
 pub fn save_image_format(
     image: &DynamicImage,
-    out: &PathBuf,
+    out: &Path,
     format: Option<&str>,
     overwrite: bool,
 ) -> Result<(), String> {

@@ -27,7 +27,7 @@ impl RunSingle for ImageArgs {
             .as_str(),
         );
 
-        let mut image = match open_image(image_path.to_path_buf()) {
+        let mut image = match open_image(image_path) {
             Ok(image) => {
                 single_progress.complete_operation_with_message("Image decoded successfully");
                 image
