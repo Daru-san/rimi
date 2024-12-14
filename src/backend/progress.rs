@@ -10,7 +10,7 @@ pub trait AppProgress {
     fn exit(&self);
 }
 
-const PROGRESS_CHARS: &str = "=>-";
+const PROGRESS_CHARS: &str = "##-";
 
 #[derive(Debug)]
 pub struct SingleProgress {
