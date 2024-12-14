@@ -12,7 +12,7 @@ pub struct RecolorArgs {
     color_space: ColorSpace,
 
     /// Bit depth of the image
-    #[clap(short = 'B', long, value_enum)]
+    #[clap(short, long, value_enum)]
     bit_depth: BitDepth,
 }
 
