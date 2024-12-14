@@ -83,6 +83,8 @@ impl AppProgress for SingleProgress {
 pub struct BatchProgress {
     total_errors: u32,
 
+    subtask_errors: u32,
+
     start_time: Instant,
 
     verbosity: u32,
@@ -127,6 +129,8 @@ impl AppProgress for BatchProgress {
         Self {
             total_errors: 0,
 
+            subtask_errors: 0,
+
             verbosity,
 
             subtask_progress,
@@ -160,7 +164,20 @@ impl AppProgress for BatchProgress {
         let now = Instant::now();
         let total_duration = now.duration_since(self.start_time);
 
-        self.subtask_progress.finish();
+        if let Some(completed_sub_tasks) = self.subtask_progress.length() {
+            if self.subtask_errors == 0 {
+                self.subtask_progress.finish_with_message(format!(
+                    "{} images were saved successfully.",
+                    completed_sub_tasks
+                ));
+            } else {
+                self.subtask_progress.finish_with_message(format!(
+                    "{} images were saved with {} errors.",
+                    completed_sub_tasks - (self.subtask_errors as u64),
+                    self.subtask_errors
+                ));
+            }
+        }
 
         if let Some(completed_tasks) = self.task_progress.length() {
             self.task_progress.finish_with_message(format!(
@@ -203,14 +220,16 @@ impl BatchProgress {
             ));
         }
         self.subtask_progress.inc(1);
+        self.subtask_errors += 1;
         self.total_errors += 1;
     }
     pub fn task_count(&mut self, count: usize) {
         self.task_progress.set_position(0);
         self.task_progress.set_length(count as u64);
     }
-    pub fn sub_task_count(&self, count: usize) {
+    pub fn sub_task_count(&mut self, count: usize) {
         self.subtask_progress.set_position(0);
         self.subtask_progress.set_length(count as u64);
+        self.subtask_errors = 0;
     }
 }
