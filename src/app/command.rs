@@ -112,13 +112,12 @@ pub enum AppCommand {
 
 impl CommandArgs {
     pub fn run(&self) -> Result<()> {
-        let verbosity = if self.verbosity_args.quiet {
-            0
-        } else if self.verbosity_args.verbose {
-            2
-        } else {
-            1
+        let verbosity = match (self.verbosity_args.quiet, self.verbosity_args.verbose) {
+            (true, false) => 0,
+            (false, true) => 2,
+            (_, _) => 1,
         };
+
         match &self.misc_args.command {
             Some(AppCommand::Completions(args)) => args.run(),
             Some(AppCommand::Info(args)) => args.run(),
