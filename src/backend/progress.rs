@@ -82,17 +82,16 @@ impl AppProgress for SingleProgress {
 #[derive(Debug)]
 pub struct BatchProgress {
     total_errors: u32,
-    completed_tasks: u32,
 
     start_time: Instant,
 
     verbosity: u32,
 
-    current_progress_bar: ProgressBar,
-    total_progress_bar: ProgressBar,
+    subtask_progress: ProgressBar,
+    task_progress: ProgressBar,
 
     #[allow(dead_code)]
-    shared_progress_bar: MultiProgress,
+    multi_progress: MultiProgress,
 }
 
 impl AppProgress for BatchProgress {
