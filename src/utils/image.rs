@@ -6,7 +6,7 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 pub fn open_image(image_path: &Path) -> Result<DynamicImage, String> {
-    match ImageReader::open(&image_path) {
+    match ImageReader::open(image_path) {
         Ok(reader) => match reader.decode() {
             Ok(image) => Ok(image),
             Err(decode_error) => Err(format!(
