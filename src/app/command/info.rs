@@ -16,7 +16,7 @@ pub struct InfoArgs {
 
 impl InfoArgs {
     pub fn run(&self) -> Result<()> {
-        let image = match open_image(self.image_file.clone()) {
+        let image = match open_image(&self.image_file) {
             Ok(image) => image,
             Err(decode_error) => return Err(TaskError::SingleError(decode_error).into()),
         };
