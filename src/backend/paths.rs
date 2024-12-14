@@ -23,7 +23,7 @@ pub fn create_paths(
     }
 
     for (index, file) in files.iter().enumerate() {
-        let mut path = dest_dir.join(file);
+        let mut path = dest_dir.join(file.file_name());
 
         let file_name = match name_expr {
             Some(expr) => {
