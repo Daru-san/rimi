@@ -57,7 +57,7 @@ impl RunBatch for ImageArgs {
                 .as_str(),
             );
             if self.abort_on_error {
-                batch_progress.abort_message(
+                batch_progress.abort_task(
                     format!(
                         "Image processing exited with {} errros.",
                         tasks_queue.count_failures()
