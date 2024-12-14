@@ -1,6 +1,6 @@
 mod app;
 mod backend;
-mod utils;
+mod image;
 
 use std::error::Error;
 
