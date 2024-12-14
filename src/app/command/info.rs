@@ -1,5 +1,6 @@
 use crate::backend::error::TaskError;
-use crate::{utils::image::open_image, utils::info::print_info};
+use crate::image::{info::print_info, manipulator::open_image};
+
 use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;

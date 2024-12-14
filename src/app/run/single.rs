@@ -4,10 +4,10 @@ use crate::backend::error::TaskError;
 use crate::backend::progress::AppProgress;
 use crate::backend::progress::SingleProgress;
 use console::Style;
+use crate::image::manipulator::{open_image, save_image_format};
 
 impl RunSingle for ImageArgs {
     fn run_single(&self, command: &ImageCommand, verbosity: u32) -> anyhow::Result<()> {
-        use crate::utils::image::{open_image, save_image_format};
 
         let image_path = &self.images[0];
 

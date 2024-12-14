@@ -2,17 +2,16 @@ use std::path::PathBuf;
 
 use crate::app::command::{ImageArgs, ImageCommand};
 use crate::backend::error::TaskError;
+use crate::backend::paths::create_paths;
 use crate::backend::progress::{AppProgress, BatchProgress};
 use crate::backend::queue::{TaskQueue, TaskState};
+use crate::image::manipulator::{open_image, save_image_format};
 
 use super::RunBatch;
 use anyhow::Result;
 
 impl RunBatch for ImageArgs {
     fn run_batch(&self, command: &ImageCommand, verbosity: u32) -> Result<()> {
-        use crate::utils::batch::*;
-        use crate::utils::image::{open_image, save_image_format};
-
         let num_images = self.images.len() - 1;
 
         const TASK_COUNT: usize = 3;

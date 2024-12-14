@@ -1,4 +1,5 @@
-use crate::utils::image::remove_background;
+use crate::image::manipulator::remove_background;
+
 use anyhow::Result;
 use clap::Parser;
 use image::DynamicImage;

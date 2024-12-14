@@ -1,4 +1,5 @@
-use crate::utils::color::ColorInfo;
+use crate::image::color::ColorInfo;
+
 use anyhow::Result;
 use clap::Parser;
 use image::DynamicImage;

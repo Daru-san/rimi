@@ -1,5 +1,6 @@
 use crate::backend::error::TaskError;
-use crate::utils::image::{resize_image, Dimensions};
+use crate::image::manipulator::{resize_image, Dimensions};
+
 use anyhow::Result;
 use clap::Parser;
 use image::DynamicImage;
