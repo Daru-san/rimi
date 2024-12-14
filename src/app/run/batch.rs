@@ -39,6 +39,10 @@ impl RunBatch for ImageArgs {
             match current_image {
                 Ok(good_image) => {
                     tasks_queue.decoded_task(&good_image, task_id);
+                    batch_progress.finish_sub_task(&format!(
+                        "Image decoded: {}",
+                        image.as_path().to_string_lossy()
+                    ));
                 }
                 Err(decode_error) => {
                     batch_progress.error_sub_task(decode_error.as_str());
