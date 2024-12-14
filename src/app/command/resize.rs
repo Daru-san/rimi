@@ -8,9 +8,11 @@ use image::DynamicImage;
 #[derive(Parser, Debug)]
 pub struct ResizeArgs {
     /// New width
+    #[clap(short, long)]
     width: u32,
 
     /// New height
+    #[clap(short = 'H', long)]
     height: u32,
 
     /// Image Sampling filter
