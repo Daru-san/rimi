@@ -160,13 +160,16 @@ impl AppProgress for BatchProgress {
         let now = Instant::now();
         let total_duration = now.duration_since(self.start_time);
 
-        self.current_progress_bar.finish_with_message(format!(
-            "{} tasks completed with {} errors in {}s",
-            self.completed_tasks,
-            self.total_errors,
-            total_duration.as_secs()
-        ));
-        self.total_progress_bar.finish_and_clear();
+        self.subtask_progress.finish();
+
+        if let Some(completed_tasks) = self.task_progress.length() {
+            self.task_progress.finish_with_message(format!(
+                "{} tasks completed with {} errors in {}s",
+                completed_tasks,
+                self.total_errors,
+                total_duration.as_secs()
+            ));
+        }
     }
 }
 
