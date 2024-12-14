@@ -67,11 +67,12 @@ pub struct ImageArgs {
 
 #[derive(Parser)]
 struct VerbosityArgs {
-    #[clap(short, long)]
+    /// Silence output
+    #[clap(short, long, conflicts_with("verbose"))]
     quiet: bool,
 
     /// Very verbose output
-    #[clap(short, long)]
+    #[clap(short, long, conflicts_with("quiet"))]
     verbose: bool,
 }
 
