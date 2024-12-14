@@ -62,7 +62,7 @@ impl TaskQueue {
         self.tasks.iter_mut().find(|task| task.id == task_id)
     }
 
-    pub fn set_completed(&mut self, task_id: u32) {
+    pub fn completed_task(&mut self, task_id: u32) {
         for task in self.tasks.iter_mut() {
             if task.id == task_id {
                 task.state = TaskState::Complete;
@@ -70,7 +70,7 @@ impl TaskQueue {
         }
     }
 
-    pub fn set_decoded(&mut self, decoded_image: &DynamicImage, task_id: u32) {
+    pub fn decoded_task(&mut self, decoded_image: &DynamicImage, task_id: u32) {
         for task in self.tasks.iter_mut() {
             if task.id == task_id {
                 task.state = TaskState::Decoded;
@@ -79,7 +79,7 @@ impl TaskQueue {
         }
     }
 
-    pub fn set_failed(&mut self, task_id: u32, task_error: String) {
+    pub fn fail_task(&mut self, task_id: u32, task_error: String) {
         for task in self.tasks.iter_mut() {
             if task.id == task_id {
                 task.state = TaskState::Failed(TaskError::SingleError(task_error.to_string()));
@@ -87,7 +87,7 @@ impl TaskQueue {
         }
     }
 
-    pub fn set_processed(&mut self, processed_image: &DynamicImage, task_id: u32) {
+    pub fn processed_task(&mut self, processed_image: &DynamicImage, task_id: u32) {
         for task in self.tasks.iter_mut() {
             if task.id == task_id {
                 task.state = TaskState::Processed;
@@ -139,7 +139,7 @@ impl TaskQueue {
         tasks
     }
 
-    pub fn decoded_ids(&self) -> Vec<u32> {
+    pub fn decoded_task_ids(&self) -> Vec<u32> {
         let mut ids = Vec::new();
         for task in &self.tasks {
             if let TaskState::Decoded = task.state {
@@ -149,7 +149,7 @@ impl TaskQueue {
         ids
     }
 
-    pub fn set_out_path(&mut self, task_id: u32, path: &Path) {
+    pub fn set_task_out_path(&mut self, task_id: u32, path: &Path) {
         for task in self.tasks.iter_mut() {
             if task.id == task_id {
                 task.out_path = path.to_path_buf();
