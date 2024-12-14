@@ -153,6 +153,7 @@ impl AppProgress for BatchProgress {
         self.task_progress.inc(1);
     }
     fn abort_task(&self, message: &str) {
+        self.subtask_progress.abandon();
         self.task_progress.abandon_with_message(message.to_string());
     }
     fn exit(&self) {
