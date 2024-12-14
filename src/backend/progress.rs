@@ -4,10 +4,10 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 pub trait AppProgress {
     fn init(verbosity: u32) -> Self;
-    fn start_operation(&self, message: &str);
-    fn complete_operation_with_message(&self, message: &str);
-    fn abort_message(&self, message: &str);
-    fn complete(&self);
+    fn start_task(&self, message: &str);
+    fn finish_task(&self, message: &str);
+    fn abort_task(&self, message: &str);
+    fn exit(&self);
 }
 
 const PROGRESS_CHARS: &str = "=>-";
@@ -45,11 +45,11 @@ impl AppProgress for SingleProgress {
         }
     }
 
-    fn start_operation(&self, message: &str) {
+    fn start_task(&self, message: &str) {
         self.progress_bar.set_message(message.to_string());
     }
 
-    fn complete_operation_with_message(&self, message: &str) {
+    fn finish_task(&self, message: &str) {
         let message = format!(
             "[{}/{}] {}",
             self.progress_bar.position() + 1,
@@ -64,11 +64,11 @@ impl AppProgress for SingleProgress {
         self.progress_bar.inc(1);
     }
 
-    fn abort_message(&self, message: &str) {
+    fn abort_task(&self, message: &str) {
         self.progress_bar.abandon_with_message(message.to_string());
     }
 
-    fn complete(&self) {
+    fn exit(&self) {
         let now = Instant::now();
         let total_duration = now.duration_since(self.start_time);
 
@@ -138,10 +138,10 @@ impl AppProgress for BatchProgress {
             start_time: Instant::now(),
         }
     }
-    fn start_operation(&self, message: &str) {
+    fn start_task(&self, message: &str) {
         self.total_progress_bar.set_message(message.to_string());
     }
-    fn complete_operation_with_message(&self, message: &str) {
+    fn finish_task(&self, message: &str) {
         if let Some(total_progress) = self.total_progress_bar.length() {
             let message = format!(
                 "[{}/{}] Task complete: {}",
@@ -154,11 +154,11 @@ impl AppProgress for BatchProgress {
         }
         self.total_progress_bar.inc(1);
     }
-    fn abort_message(&self, message: &str) {
+    fn abort_task(&self, message: &str) {
         self.total_progress_bar
             .abandon_with_message(message.to_string());
     }
-    fn complete(&self) {
+    fn exit(&self) {
         let now = Instant::now();
         let total_duration = now.duration_since(self.start_time);
 
@@ -173,10 +173,10 @@ impl AppProgress for BatchProgress {
 }
 
 impl BatchProgress {
-    pub fn start_sub_operation(&self, message: &str) {
+    pub fn start_sub_task(&self, message: &str) {
         self.current_progress_bar.set_message(message.to_string());
     }
-    pub fn complete_sub_operation(&self, message: &str) {
+    pub fn finish_sub_task(&self, message: &str) {
         if let Some(total_progress) = self.current_progress_bar.length() {
             let message = format!(
                 "[{}/{}] {}",
@@ -192,7 +192,7 @@ impl BatchProgress {
         }
         self.current_progress_bar.inc(1);
     }
-    pub fn error_sub_operation(&mut self, message: &str) {
+    pub fn error_sub_task(&mut self, message: &str) {
         if let Some(total_progress) = self.current_progress_bar.length() {
             self.current_progress_bar.println(format!(
                 "[{}/{}] {}",
@@ -204,11 +204,11 @@ impl BatchProgress {
         self.current_progress_bar.inc(1);
         self.total_errors += 1;
     }
-    pub fn set_op_count(&mut self, count: usize) {
+    pub fn task_count(&mut self, count: usize) {
         self.total_progress_bar.set_position(0);
         self.total_progress_bar.set_length(count as u64);
     }
-    pub fn set_sub_op_count(&self, count: usize) {
+    pub fn sub_task_count(&self, count: usize) {
         self.current_progress_bar.set_position(0);
         self.current_progress_bar.set_length(count as u64);
     }

@@ -19,7 +19,7 @@ impl RunSingle for ImageArgs {
 
         let single_progress = SingleProgress::init(verbosity);
 
-        single_progress.start_operation(
+        single_progress.start_task(
             format!(
                 "Decoding image: {}",
                 image_path.to_path_buf().to_string_lossy()
@@ -29,11 +29,11 @@ impl RunSingle for ImageArgs {
 
         let mut image = match open_image(image_path) {
             Ok(image) => {
-                single_progress.complete_operation_with_message("Image decoded successfully");
+                single_progress.finish_task("Image decoded successfully");
                 image
             }
             Err(decode_error) => {
-                single_progress.abort_message("Image decode failed");
+                single_progress.abort_task("Image decode failed");
                 return Err(TaskError::SingleError(decode_error).into());
             }
         };
@@ -43,7 +43,7 @@ impl RunSingle for ImageArgs {
             None => image_path,
         };
 
-        single_progress.complete_operation_with_message(
+        single_progress.finish_task(
             format!(
                 "Set output path: {}",
                 output_path.to_path_buf().to_string_lossy()
@@ -53,7 +53,7 @@ impl RunSingle for ImageArgs {
 
         match command {
             ImageCommand::Convert => match &self.format {
-                Some(format) => single_progress.complete_operation_with_message(
+                Some(format) => single_progress.finish_task(
                     format!(
                         "Coverting image: {} to format {}",
                         image_path.to_path_buf().to_string_lossy(),
@@ -61,7 +61,7 @@ impl RunSingle for ImageArgs {
                     )
                     .as_str(),
                 ),
-                None => single_progress.complete_operation_with_message(
+                None => single_progress.finish_task(
                     format!(
                         "Converting image: {} as image {}",
                         image_path.to_path_buf().to_string_lossy(),
@@ -71,45 +71,42 @@ impl RunSingle for ImageArgs {
                 ),
             },
             ImageCommand::Resize(args) => {
-                single_progress.start_operation("Resizing image");
+                single_progress.start_task("Resizing image");
 
                 match args.run(&mut image) {
                     Ok(()) => {
-                        single_progress
-                            .complete_operation_with_message("Image resized successfully");
+                        single_progress.finish_task("Image resized successfully");
                     }
                     Err(resize_error) => {
-                        single_progress.abort_message("Image resize failed with error.");
+                        single_progress.abort_task("Image resize failed with error.");
                         return Err(resize_error);
                     }
                 }
             }
             ImageCommand::Recolor(args) => {
-                single_progress.start_operation("Recoloring image");
+                single_progress.start_task("Recoloring image");
                 match args.run(&mut image) {
                     Ok(()) => {
-                        single_progress.complete_operation_with_message("Image color changed.");
+                        single_progress.finish_task("Image color changed.");
                     }
                     Err(recolor_error) => {
-                        single_progress.abort_message("Image recolor failed with error.");
+                        single_progress.abort_task("Image recolor failed with error.");
                         return Err(recolor_error);
                     }
                 }
             }
             ImageCommand::Transparentize(args) => {
-                single_progress.start_operation("Removing image background");
+                single_progress.start_task("Removing image background");
                 match args.run(&mut image) {
-                    Ok(()) => {
-                        single_progress.complete_operation_with_message("Image background removed.")
-                    }
+                    Ok(()) => single_progress.finish_task("Image background removed."),
                     Err(removal_error) => {
-                        single_progress.abort_message("Background removal failed.");
+                        single_progress.abort_task("Background removal failed.");
                         return Err(removal_error);
                     }
                 }
             }
         };
-        single_progress.start_operation(
+        single_progress.start_task(
             format!(
                 "Saving image: {}",
                 output_path.to_path_buf().to_string_lossy()
@@ -118,13 +115,13 @@ impl RunSingle for ImageArgs {
         );
 
         match save_image_format(&image, output_path, self.format.as_deref(), self.overwrite) {
-            Ok(()) => single_progress.complete_operation_with_message("Image saved successfully"),
+            Ok(()) => single_progress.finish_task("Image saved successfully"),
             Err(save_error) => {
-                single_progress.abort_message("Image failed to save");
+                single_progress.abort_task("Image failed to save");
                 return Err(TaskError::SingleError(save_error).into());
             }
         }
-        single_progress.complete();
+        single_progress.exit();
         Ok(())
     }
 }
