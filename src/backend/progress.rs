@@ -96,43 +96,42 @@ pub struct BatchProgress {
 
 impl AppProgress for BatchProgress {
     fn init(verbosity: u32) -> Self {
-        let current_progress_bar = ProgressBar::new_spinner()
-            .with_style(ProgressStyle::with_template("[{pos}/{len}] {spinner} {msg}").unwrap());
+        let multi_progress = MultiProgress::new();
 
-        current_progress_bar.enable_steady_tick(Duration::from_millis(100));
+        let subtask_progress = multi_progress
+            .add(ProgressBar::new_spinner().with_style(
+                ProgressStyle::with_template("[{pos}/{len}] {spinner} {msg}").unwrap(),
+            ));
 
-        let total_progress_bar = ProgressBar::new(4).with_style(
-            ProgressStyle::with_template(
-                "[{pos}/{len}] {msg}\n{bar:40.cyan/blue} [{elapsed_precise}]",
-            )
-            .unwrap()
-            .progress_chars(PROGRESS_CHARS),
+        let task_progress = multi_progress.add(
+            ProgressBar::new(4).with_style(
+                ProgressStyle::with_template(
+                    "[{pos}/{len}] {msg}\n{bar:40.cyan/blue} [{elapsed_precise}]",
+                )
+                .unwrap()
+                .progress_chars(PROGRESS_CHARS),
+            ),
         );
 
-        total_progress_bar.enable_steady_tick(Duration::from_millis(100));
+        subtask_progress.enable_steady_tick(Duration::from_millis(100));
 
-        let shared_progress_bar = MultiProgress::new();
-
-        let current_progress_bar = shared_progress_bar.add(current_progress_bar);
-
-        let total_progress_bar = shared_progress_bar.add(total_progress_bar);
+        task_progress.enable_steady_tick(Duration::from_millis(100));
 
         if verbosity == 0 {
-            current_progress_bar.finish_and_clear();
-            total_progress_bar.finish_and_clear();
-            shared_progress_bar.remove(&current_progress_bar);
-            shared_progress_bar.remove(&total_progress_bar);
+            subtask_progress.finish_and_clear();
+            task_progress.finish_and_clear();
+            multi_progress.remove(&subtask_progress);
+            multi_progress.remove(&task_progress);
         }
 
         Self {
             total_errors: 0,
-            completed_tasks: 0,
 
             verbosity,
 
-            current_progress_bar,
-            total_progress_bar,
-            shared_progress_bar,
+            subtask_progress,
+            task_progress,
+            multi_progress,
 
             start_time: Instant::now(),
         }
