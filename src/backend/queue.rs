@@ -129,16 +129,6 @@ impl TaskQueue {
         tasks
     }
 
-    pub fn completed_tasks(&self) -> Vec<&ImageTask> {
-        let mut tasks = Vec::new();
-        for task in &self.tasks {
-            if let TaskState::Complete = task.state {
-                tasks.push(task);
-            }
-        }
-        tasks
-    }
-
     pub fn decoded_task_ids(&self) -> Vec<u32> {
         let mut ids = Vec::new();
         for task in &self.tasks {
