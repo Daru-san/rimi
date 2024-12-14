@@ -96,7 +96,10 @@ impl RunBatch for ImageArgs {
 
         let out_paths = match create_paths(decoded_paths, output_path, self.name_expr.as_deref()) {
             Ok(out_paths) => out_paths,
-            Err(path_create_error) => return Err(TaskError::SingleError(path_create_error).into()),
+            Err(path_create_error) => {
+                batch_progress.abort_task("Error creating out paths");
+                return Err(TaskError::SingleError(path_create_error).into());
+            }
         };
 
         for (index, path) in out_paths.iter().enumerate() {
@@ -233,7 +236,7 @@ impl RunBatch for ImageArgs {
                     batch_progress.error_sub_task(
                         format!(
                             "Image processing failed with error: {:?}",
-                            &current_task.out_path.file_name().as_slice()
+                            &current_task.out_path.file_name().as_slice(),
                         )
                         .as_str(),
                     );
