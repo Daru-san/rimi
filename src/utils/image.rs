@@ -32,20 +32,25 @@ pub fn save_image_format(
     overwrite: bool,
 ) -> Result<(), String> {
     let mut out_path = PathBuf::from(out);
-    let img_format;
+    let image_format;
 
-    if let Some(path) = path {
-        img_format = match ImageFormat::from_extension(path) {
+    if let Some(format_extension) = format {
+        image_format = match ImageFormat::from_extension(format_extension) {
             Some(format) => format,
-            _ => return Err(path!("Couldn't get image format from extension: {}", path)),
+            _ => {
+                return Err(format!(
+                    "Couldn't get image format from extension: {}",
+                    format_extension
+                ))
+            }
         };
-        let extension = img_format.extensions_str();
+        let extension = image_format.extensions_str();
         if extension.is_empty() {
             return Err("Image format has no valid file extension".to_string());
         }
         out_path.set_extension(extension[0]);
     } else {
-        img_format = match ImageFormat::from_path(&out_path) {
+        image_format = match ImageFormat::from_path(&out_path) {
             Ok(format) => format,
             Err(_) => return Err("Could not obtain image format from output path".to_string()),
         }
@@ -54,7 +59,7 @@ pub fn save_image_format(
     match overwrite_if_existing(&out_path, overwrite) {
         Ok(overwrite) => {
             if overwrite {
-                match image.save_with_format(&out_path, img_format) {
+                match image.save_with_format(&out_path, image_format) {
                     Ok(()) => Ok(()),
                     Err(save_error) => Err(format!(
                         "Error saving image file {:?}: {}",
@@ -65,7 +70,7 @@ pub fn save_image_format(
                 Err("Not overriding existing file.".to_string())
             }
         }
-        Err(e) => Err(e.to_string()),
+        Err(check_overwrite_error) => Err(check_overwrite_error.to_string()),
     }
 }
 
@@ -116,29 +121,29 @@ pub fn remove_background(image: &mut DynamicImage) {
     let color_info = ColorInfo::from_image(image);
 
     if color_info.bit_depth == 8 {
-        let mut img = image.to_rgba8();
-        for p in img.pixels_mut() {
+        let mut image8bit = image.to_rgba8();
+        for p in image8bit.pixels_mut() {
             if p[0] == 255 && p[1] == 255 && p[2] == 255 {
                 p[3] = 0;
             }
         }
-        *image = DynamicImage::ImageRgba8(img);
+        *image = DynamicImage::ImageRgba8(image8bit);
     } else if color_info.bit_depth == 16 {
-        let mut img = image.to_rgba16();
-        for p in img.pixels_mut() {
+        let mut image16bit = image.to_rgba16();
+        for p in image16bit.pixels_mut() {
             if p[0] == 255 && p[1] == 255 && p[2] == 255 {
                 p[3] = 0;
             }
         }
-        *image = DynamicImage::ImageRgba16(img);
+        *image = DynamicImage::ImageRgba16(image16bit);
     } else {
-        let mut img = image.to_rgba32f();
-        for p in img.pixels_mut() {
+        let mut image32bit = image.to_rgba32f();
+        for p in image32bit.pixels_mut() {
             if p[0] == 255.0 && p[1] == 255.0 && p[2] == 255.0 {
                 p[3] = 0.0;
             }
         }
-        *image = DynamicImage::ImageRgba32F(img);
+        *image = DynamicImage::ImageRgba32F(image32bit);
     }
 }
 
@@ -158,6 +163,6 @@ fn overwrite_if_existing(path: &Path, do_overwrite: bool) -> Result<bool, String
             }
             false => Ok(true),
         },
-        Err(path_error) => Err(path_error.to_string()),
+        Err(path_exists_error) => Err(path_exists_error.to_string()),
     }
 }
