@@ -137,24 +137,23 @@ impl AppProgress for BatchProgress {
         }
     }
     fn start_task(&self, message: &str) {
-        self.total_progress_bar.set_message(message.to_string());
+        self.task_progress.set_message(message.to_string());
     }
     fn finish_task(&self, message: &str) {
-        if let Some(total_progress) = self.total_progress_bar.length() {
+        if let Some(total_progress) = self.task_progress.length() {
             let message = format!(
                 "[{}/{}] Task complete: {}",
-                self.total_progress_bar.position() + 1,
+                self.task_progress.position() + 1,
                 total_progress,
                 message
             );
 
-            self.current_progress_bar.println(message);
+            self.subtask_progress.println(message);
         }
-        self.total_progress_bar.inc(1);
+        self.task_progress.inc(1);
     }
     fn abort_task(&self, message: &str) {
-        self.total_progress_bar
-            .abandon_with_message(message.to_string());
+        self.task_progress.abandon_with_message(message.to_string());
     }
     fn exit(&self) {
         let now = Instant::now();
@@ -172,42 +171,42 @@ impl AppProgress for BatchProgress {
 
 impl BatchProgress {
     pub fn start_sub_task(&self, message: &str) {
-        self.current_progress_bar.set_message(message.to_string());
+        self.subtask_progress.set_message(message.to_string());
     }
     pub fn finish_sub_task(&self, message: &str) {
-        if let Some(total_progress) = self.current_progress_bar.length() {
+        if let Some(total_progress) = self.subtask_progress.length() {
             let message = format!(
                 "[{}/{}] {}",
-                self.current_progress_bar.position() + 1,
+                self.subtask_progress.position() + 1,
                 total_progress,
                 message
             );
             if self.verbosity == 2 {
-                self.current_progress_bar.println(message);
+                self.subtask_progress.println(message);
             } else {
-                self.current_progress_bar.set_message(message);
+                self.subtask_progress.set_message(message);
             }
         }
-        self.current_progress_bar.inc(1);
+        self.subtask_progress.inc(1);
     }
     pub fn error_sub_task(&mut self, message: &str) {
-        if let Some(total_progress) = self.current_progress_bar.length() {
-            self.current_progress_bar.println(format!(
+        if let Some(total_progress) = self.subtask_progress.length() {
+            self.subtask_progress.println(format!(
                 "[{}/{}] {}",
-                self.current_progress_bar.position(),
+                self.subtask_progress.position(),
                 total_progress,
                 message
             ));
         }
-        self.current_progress_bar.inc(1);
+        self.subtask_progress.inc(1);
         self.total_errors += 1;
     }
     pub fn task_count(&mut self, count: usize) {
-        self.total_progress_bar.set_position(0);
-        self.total_progress_bar.set_length(count as u64);
+        self.task_progress.set_position(0);
+        self.task_progress.set_length(count as u64);
     }
     pub fn sub_task_count(&self, count: usize) {
-        self.current_progress_bar.set_position(0);
-        self.current_progress_bar.set_length(count as u64);
+        self.subtask_progress.set_position(0);
+        self.subtask_progress.set_length(count as u64);
     }
 }
