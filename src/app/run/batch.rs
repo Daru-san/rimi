@@ -57,6 +57,13 @@ impl RunBatch for ImageArgs {
                 .as_str(),
             );
             if self.abort_on_error {
+                batch_progress.abort_message(
+                    format!(
+                        "Image processing exited with {} errros.",
+                        tasks_queue.count_failures()
+                    )
+                    .as_str(),
+                );
                 let mut total_errors = Vec::new();
                 for task in tasks_queue.failed_tasks().iter() {
                     if let TaskState::Failed(error) = &task.state {
