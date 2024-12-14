@@ -11,13 +11,10 @@ impl RunSingle for ImageArgs {
 
         let single_progress = SingleProgress::init(verbosity);
 
-        single_progress.start_task(
-            format!(
-                "Decoding image: {}",
-                image_path.to_path_buf().to_string_lossy()
-            )
-            .as_str(),
-        );
+        single_progress.start_task(&format!(
+            "Decoding image: {}",
+            image_path.to_path_buf().to_string_lossy()
+        ));
 
         let mut image = match open_image(image_path) {
             Ok(image) => {
@@ -35,32 +32,23 @@ impl RunSingle for ImageArgs {
             None => image_path,
         };
 
-        single_progress.finish_task(
-            format!(
-                "Set output path: {}",
-                output_path.to_path_buf().to_string_lossy()
-            )
-            .as_str(),
-        );
+        single_progress.finish_task(&format!(
+            "Set output path: {}",
+            output_path.to_path_buf().to_string_lossy()
+        ));
 
         match command {
             ImageCommand::Convert => match &self.format {
-                Some(format) => single_progress.finish_task(
-                    format!(
-                        "Coverting image: {} to format {}",
-                        image_path.to_path_buf().to_string_lossy(),
-                        format
-                    )
-                    .as_str(),
-                ),
-                None => single_progress.finish_task(
-                    format!(
-                        "Converting image: {} as image {}",
-                        image_path.to_path_buf().to_string_lossy(),
-                        output_path.to_path_buf().to_string_lossy()
-                    )
-                    .as_str(),
-                ),
+                Some(format) => single_progress.finish_task(&format!(
+                    "Coverting image: {} to format {}",
+                    image_path.to_path_buf().to_string_lossy(),
+                    format
+                )),
+                None => single_progress.finish_task(&format!(
+                    "Converting image: {} as image {}",
+                    image_path.to_path_buf().to_string_lossy(),
+                    output_path.to_path_buf().to_string_lossy()
+                )),
             },
             ImageCommand::Resize(args) => {
                 single_progress.start_task("Resizing image");
@@ -98,13 +86,10 @@ impl RunSingle for ImageArgs {
                 }
             }
         };
-        single_progress.start_task(
-            format!(
-                "Saving image: {}",
-                output_path.to_path_buf().to_string_lossy()
-            )
-            .as_str(),
-        );
+        single_progress.start_task(&format!(
+            "Saving image: {}",
+            output_path.to_path_buf().to_string_lossy()
+        ));
 
         match save_image_format(&image, output_path, self.format.as_deref(), self.overwrite) {
             Ok(()) => single_progress.finish_task("Image saved successfully"),

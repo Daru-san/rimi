@@ -22,16 +22,17 @@ impl RunBatch for ImageArgs {
 
         batch_progress.task_count(TASK_COUNT);
 
-        batch_progress.start_task(format!("Deciding {} images", num_images).as_str());
+        batch_progress.start_task(&format!("Deciding {} images", num_images));
 
         batch_progress.sub_task_count(num_images);
 
         for image in self.images.iter() {
             let task_id = tasks_queue.new_task(image);
 
-            batch_progress.start_sub_task(
-                format!("Decoding image: {:?}", image.file_name().as_slice()).as_str(),
-            );
+            batch_progress.start_sub_task(&format!(
+                "Decoding image: {:?}",
+                image.file_name().as_slice()
+            ));
 
             let current_image = open_image(image);
 
@@ -47,22 +48,16 @@ impl RunBatch for ImageArgs {
         }
 
         if tasks_queue.has_failures() {
-            batch_progress.finish_task(
-                format!(
-                    "{} images were decoded with {} errors",
-                    num_images,
-                    tasks_queue.count_failures()
-                )
-                .as_str(),
-            );
+            batch_progress.finish_task(&format!(
+                "{} images were decoded with {} errors",
+                num_images,
+                tasks_queue.count_failures()
+            ));
             if self.abort_on_error {
-                batch_progress.abort_task(
-                    format!(
-                        "Image processing exited with {} errros.",
-                        tasks_queue.count_failures()
-                    )
-                    .as_str(),
-                );
+                batch_progress.abort_task(&format!(
+                    "Image processing exited with {} errros.",
+                    tasks_queue.count_failures()
+                ));
                 let mut total_errors = Vec::new();
                 for task in tasks_queue.failed_tasks().iter() {
                     if let TaskState::Failed(error) = &task.state {
@@ -73,13 +68,10 @@ impl RunBatch for ImageArgs {
                 return Err(TaskError::BatchError(total_errors).into());
             }
         } else {
-            batch_progress.finish_task(
-                format!(
-                    "{} images were decoded successfully ^.^",
-                    tasks_queue.decoded_tasks().len()
-                )
-                .as_str(),
-            );
+            batch_progress.finish_task(&format!(
+                "{} images were decoded successfully ^.^",
+                tasks_queue.decoded_tasks().len()
+            ));
         }
 
         batch_progress.start_task("Creating output paths");
@@ -126,31 +118,22 @@ impl RunBatch for ImageArgs {
 
             match command {
                 ImageCommand::Convert => match &self.format {
-                    Some(format) => batch_progress.start_sub_task(
-                        format!(
-                            "Coverting image: {} to format {}",
-                            current_task.image_path.to_string_lossy(),
-                            format
-                        )
-                        .as_str(),
-                    ),
-                    None => batch_progress.start_sub_task(
-                        format!(
-                            "Converting image: {} as image {}",
-                            current_task.image_path.to_string_lossy(),
-                            current_task.out_path.to_string_lossy()
-                        )
-                        .as_str(),
-                    ),
+                    Some(format) => batch_progress.start_sub_task(&format!(
+                        "Coverting image: {} to format {}",
+                        current_task.image_path.to_string_lossy(),
+                        format
+                    )),
+                    None => batch_progress.start_sub_task(&format!(
+                        "Converting image: {} as image {}",
+                        current_task.image_path.to_string_lossy(),
+                        current_task.out_path.to_string_lossy()
+                    )),
                 },
                 ImageCommand::Resize(args) => {
-                    batch_progress.start_sub_task(
-                        format!(
-                            "Resizing image: {}",
-                            current_task.image_path.to_string_lossy()
-                        )
-                        .as_str(),
-                    );
+                    batch_progress.start_sub_task(&format!(
+                        "Resizing image: {}",
+                        current_task.image_path.to_string_lossy()
+                    ));
                     match args.run(&mut current_task.image) {
                         Ok(()) => {
                             tasks_queue.processed_task(&current_task.image, task_id);
@@ -162,13 +145,10 @@ impl RunBatch for ImageArgs {
                     }
                 }
                 ImageCommand::Recolor(args) => {
-                    batch_progress.start_sub_task(
-                        format!(
-                            "Recoloring image: {}",
-                            current_task.image_path.to_string_lossy()
-                        )
-                        .as_str(),
-                    );
+                    batch_progress.start_sub_task(&format!(
+                        "Recoloring image: {}",
+                        current_task.image_path.to_string_lossy()
+                    ));
                     match args.run(&mut current_task.image) {
                         Ok(()) => {
                             tasks_queue.processed_task(&current_task.image, task_id);
@@ -180,13 +160,10 @@ impl RunBatch for ImageArgs {
                     }
                 }
                 ImageCommand::Transparentize(args) => {
-                    batch_progress.start_sub_task(
-                        format!(
-                            "Removing background: {}",
-                            current_task.image_path.to_string_lossy()
-                        )
-                        .as_str(),
-                    );
+                    batch_progress.start_sub_task(&format!(
+                        "Removing background: {}",
+                        current_task.image_path.to_string_lossy()
+                    ));
                     match args.run(&mut current_task.image) {
                         Ok(()) => {
                             tasks_queue.processed_task(&current_task.image, task_id);
@@ -213,6 +190,9 @@ impl RunBatch for ImageArgs {
                 .as_str(),
             );
 
+            //TODO: Stop progress bars when prompting for image overwrite
+            //NOTE: We may be able to check for overwrites before saving,
+            //although that may be a bad idea
             let image_result = save_image_format(
                 &current_task.image,
                 &current_task.out_path,
@@ -223,23 +203,17 @@ impl RunBatch for ImageArgs {
             match image_result {
                 Ok(()) => {
                     tasks_queue.completed_task(task_id);
-                    batch_progress.finish_sub_task(
-                        format!(
-                            "Image saved successfully: {:?}",
-                            &current_task.out_path.file_name().as_slice()
-                        )
-                        .as_str(),
-                    );
+                    batch_progress.finish_sub_task(&format!(
+                        "Image saved successfully: {:?}",
+                        &current_task.out_path.file_name().as_slice()
+                    ));
                 }
                 Err(save_error) => {
                     tasks_queue.fail_task(task_id, save_error.to_string());
-                    batch_progress.error_sub_task(
-                        format!(
-                            "Image processing failed with error: {:?}",
-                            &current_task.out_path.file_name().as_slice(),
-                        )
-                        .as_str(),
-                    );
+                    batch_progress.error_sub_task(&format!(
+                        "Image processing failed with error: {:?}",
+                        &current_task.out_path.file_name().as_slice(),
+                    ));
                 }
             }
         }
