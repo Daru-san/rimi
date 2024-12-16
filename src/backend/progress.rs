@@ -7,6 +7,7 @@ pub trait AppProgress {
     fn start_task(&self, message: &str);
     fn finish_task(&self, message: &str);
     fn abort_task(&self, message: &str);
+    fn suspend<F: FnOnce() -> R, R>(&self, f: F) -> R;
     fn exit(&self);
 }
 
@@ -76,6 +77,9 @@ impl AppProgress for SingleProgress {
             "image operations completed in {}!",
             total_duration.as_secs()
         ));
+    }
+    fn suspend<F: FnOnce() -> R, R>(&self, f: F) -> R {
+        self.progress_bar.suspend(f)
     }
 }
 
@@ -159,6 +163,9 @@ impl AppProgress for BatchProgress {
     fn abort_task(&self, message: &str) {
         self.subtask_progress.abandon();
         self.task_progress.abandon_with_message(message.to_string());
+    }
+    fn suspend<F: FnOnce() -> R, R>(&self, f: F) -> R {
+        self.multi_progress.suspend(f)
     }
     fn exit(&self) {
         let now = Instant::now();
