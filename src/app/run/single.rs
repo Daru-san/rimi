@@ -12,6 +12,10 @@ impl RunSingle for ImageArgs {
 
         let progress = SingleProgress::init(verbosity);
 
+        const TASK_COUNT: usize = 4;
+
+        progress.task_count(TASK_COUNT);
+
         progress.start_task(&format!(
             "Decoding image: {}",
             image_path.to_path_buf().to_string_lossy()
