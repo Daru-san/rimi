@@ -27,12 +27,6 @@ impl Display for BitDepth {
     }
 }
 
-impl PartialEq for BitDepth {
-    fn eq(&self, other: &Self) -> bool {
-        self == other
-    }
-}
-
 impl FromStr for BitDepth {
     type Err = String;
 
