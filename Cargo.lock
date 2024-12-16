@@ -934,7 +934,6 @@ dependencies = [
  "clap",
  "clap_complete",
  "clap_complete_nushell",
- "console",
  "dialoguer",
  "image",
  "indicatif",
