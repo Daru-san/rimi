@@ -80,7 +80,7 @@ impl AppProgress for SingleProgress {
         let total_duration = now.duration_since(self.start_time);
 
         self.progress_bar.finish_with_message(format!(
-            "image operations completed in {}!",
+            "image operations completed in {}s!",
             total_duration.as_secs()
         ));
     }
