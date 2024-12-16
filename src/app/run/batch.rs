@@ -82,14 +82,16 @@ impl BatchRunner {
                     "Image processing exited with {} errros.",
                     self.tasks_queue.count_failures()
                 ));
-                let mut total_errors = Vec::new();
-                for task in self.tasks_queue.failed_tasks().iter() {
-                    if let TaskState::Failed(error) = &task.state {
-                        total_errors.push(error.to_string());
-                    }
-                }
 
-                return Err(TaskError::BatchError(total_errors).into());
+                let mut errors = Vec::new();
+
+                self.tasks_queue.failed_tasks().iter().for_each(|task| {
+                    if let TaskState::Failed(error) = &task.state {
+                        errors.push(error.to_string());
+                    }
+                });
+
+                return Err(TaskError::BatchError(errors).into());
             }
         } else {
             self.progress.finish_task(&format!(
