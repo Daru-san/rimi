@@ -1,5 +1,8 @@
 use std::path::{Path, PathBuf};
 
+use dialoguer::Confirm;
+use image::ImageFormat;
+
 pub fn create_paths(
     files: Vec<PathBuf>,
     destination: PathBuf,
@@ -61,3 +64,48 @@ pub fn create_paths(
     Ok(paths)
 }
 
+pub fn paths_exist(paths: Vec<PathBuf>) -> Result<Vec<PathBuf>, String> {
+    let mut existing_paths = Vec::new();
+
+    paths.iter().for_each(|path| {
+        if let Ok(path_exists) = path.try_exists() {
+            if path_exists {
+                existing_paths.push(path.to_path_buf());
+            }
+        }
+    });
+
+    Ok(existing_paths)
+}
+
+pub fn prompt_overwrite(paths: Vec<PathBuf>) -> Result<(), String> {
+    println!("Existing paths found: ");
+    for path in paths {
+        println!("{}", path.to_string_lossy());
+    }
+
+    let confirm = Confirm::new()
+        .with_prompt("Overwrite these paths?")
+        .interact();
+    match confirm {
+        Ok(overwrite) => match overwrite {
+            true => Ok(()),
+            false => Err("Not overwriting existing paths".to_string()),
+        },
+        Err(confirm_error) => Err(confirm_error.to_string()),
+    }
+}
+
+pub fn prompt_overwrite_single(path: &Path) -> Result<(), String> {
+    println!("Overwrite existing path: {}?", path.to_string_lossy());
+    let confirm = Confirm::new()
+        .with_prompt("Overwrite these paths?")
+        .interact();
+    match confirm {
+        Ok(overwrite) => match overwrite {
+            true => Ok(()),
+            false => Err("Not overwriting existing paths".to_string()),
+        },
+        Err(confirm_error) => Err(confirm_error.to_string()),
+    }
+}
