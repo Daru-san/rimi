@@ -24,18 +24,19 @@ pub struct SingleProgress {
 
 impl AppProgress for SingleProgress {
     fn init(verbosity: u32) -> SingleProgress {
-        let progress_bar = ProgressBar::new(4).with_style(
-            ProgressStyle::with_template(
-                "[{pos}/{len}] {msg}\n[{bar:40.cyan/blue}] [{elapsed_precise}]",
-            )
-            .unwrap()
-            .progress_chars(PROGRESS_CHARS),
-        );
-        progress_bar.enable_steady_tick(Duration::from_millis(100));
-
-        if verbosity == 0 {
-            progress_bar.finish_and_clear();
-        }
+        let progress_bar = if verbosity == 0 {
+            ProgressBar::hidden()
+        } else {
+            let bar = ProgressBar::new(0).with_style(
+                ProgressStyle::with_template(
+                    "[{pos}/{len}] {msg}\n[{bar:40.cyan/blue}] [{elapsed_precise}]",
+                )
+                .unwrap()
+                .progress_chars(PROGRESS_CHARS),
+            );
+            bar.enable_steady_tick(Duration::from_millis(100));
+            bar
+        };
 
         let start_time = Instant::now();
 
@@ -109,30 +110,29 @@ impl AppProgress for BatchProgress {
     fn init(verbosity: u32) -> Self {
         let multi_progress = MultiProgress::new();
 
-        let subtask_progress = multi_progress
-            .add(ProgressBar::new_spinner().with_style(
+        let (task_progress, subtask_progress);
+
+        if verbosity == 0 {
+            task_progress = ProgressBar::hidden();
+            subtask_progress = ProgressBar::hidden();
+        } else {
+            subtask_progress = multi_progress.add(ProgressBar::new_spinner().with_style(
                 ProgressStyle::with_template("[{pos}/{len}] {spinner} {msg}").unwrap(),
             ));
 
-        let task_progress = multi_progress.add(
-            ProgressBar::new(4).with_style(
-                ProgressStyle::with_template(
-                    "[{pos}/{len}] {msg}\n{bar:40.cyan/blue} [{elapsed_precise}]",
-                )
-                .unwrap()
-                .progress_chars(PROGRESS_CHARS),
-            ),
-        );
+            task_progress = multi_progress.add(
+                ProgressBar::new(4).with_style(
+                    ProgressStyle::with_template(
+                        "[{pos}/{len}] {msg}\n{bar:40.cyan/blue} [{elapsed_precise}]",
+                    )
+                    .unwrap()
+                    .progress_chars(PROGRESS_CHARS),
+                ),
+            );
 
-        subtask_progress.enable_steady_tick(Duration::from_millis(100));
+            subtask_progress.enable_steady_tick(Duration::from_millis(100));
 
-        task_progress.enable_steady_tick(Duration::from_millis(100));
-
-        if verbosity == 0 {
-            subtask_progress.finish_and_clear();
-            task_progress.finish_and_clear();
-            multi_progress.remove(&subtask_progress);
-            multi_progress.remove(&task_progress);
+            task_progress.enable_steady_tick(Duration::from_millis(100));
         }
 
         Self {
