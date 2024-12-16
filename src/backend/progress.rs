@@ -4,6 +4,7 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 pub trait AppProgress {
     fn init(verbosity: u32) -> Self;
+    fn task_count(&self, count: usize);
     fn start_task(&self, message: &str);
     fn finish_task(&self, message: &str);
     fn abort_task(&self, message: &str);
@@ -44,6 +45,10 @@ impl AppProgress for SingleProgress {
             start_time,
             verbosity,
         }
+    }
+
+    fn task_count(&self, count: usize) {
+        self.progress_bar.set_length(count as u64);
     }
 
     fn start_task(&self, message: &str) {
@@ -144,9 +149,16 @@ impl AppProgress for BatchProgress {
             start_time: Instant::now(),
         }
     }
+
+    fn task_count(&self, count: usize) {
+        self.task_progress.set_position(0);
+        self.task_progress.set_length(count as u64);
+    }
+
     fn start_task(&self, message: &str) {
         self.task_progress.set_message(message.to_string());
     }
+
     fn finish_task(&self, message: &str) {
         if let Some(total_progress) = self.task_progress.length() {
             let message = format!(
@@ -160,13 +172,16 @@ impl AppProgress for BatchProgress {
         }
         self.task_progress.inc(1);
     }
+
     fn abort_task(&self, message: &str) {
         self.subtask_progress.abandon();
         self.task_progress.abandon_with_message(message.to_string());
     }
+
     fn suspend<F: FnOnce() -> R, R>(&self, f: F) -> R {
         self.multi_progress.suspend(f)
     }
+
     fn exit(&self) {
         let now = Instant::now();
         let total_duration = now.duration_since(self.start_time);
@@ -198,9 +213,16 @@ impl AppProgress for BatchProgress {
 }
 
 impl BatchProgress {
+    pub fn sub_task_count(&mut self, count: usize) {
+        self.subtask_progress.set_position(0);
+        self.subtask_progress.set_length(count as u64);
+        self.subtask_errors = 0;
+    }
+
     pub fn start_sub_task(&self, message: &str) {
         self.subtask_progress.set_message(message.to_string());
     }
+
     pub fn finish_sub_task(&self, message: &str) {
         if let Some(total_progress) = self.subtask_progress.length() {
             let message = format!(
@@ -217,6 +239,7 @@ impl BatchProgress {
         }
         self.subtask_progress.inc(1);
     }
+
     pub fn error_sub_task(&mut self, message: &str) {
         if let Some(total_progress) = self.subtask_progress.length() {
             self.subtask_progress.println(format!(
@@ -229,14 +252,5 @@ impl BatchProgress {
         self.subtask_progress.inc(1);
         self.subtask_errors += 1;
         self.total_errors += 1;
-    }
-    pub fn task_count(&mut self, count: usize) {
-        self.task_progress.set_position(0);
-        self.task_progress.set_length(count as u64);
-    }
-    pub fn sub_task_count(&mut self, count: usize) {
-        self.subtask_progress.set_position(0);
-        self.subtask_progress.set_length(count as u64);
-        self.subtask_errors = 0;
     }
 }
