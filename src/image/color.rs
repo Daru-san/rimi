@@ -113,7 +113,7 @@ impl ColorInfo {
         }
     }
     pub fn convert_image(&self, image: &mut DynamicImage) {
-        let color_space = self.to_color_space();
+        let color_space = self.to_color_type();
         let colored_image = match color_space {
             ColorType::L8 => DynamicImage::ImageLuma8(image.to_luma8()),
             ColorType::La8 => DynamicImage::ImageLumaA8(image.to_luma_alpha8()),
@@ -129,7 +129,7 @@ impl ColorInfo {
         };
         *image = colored_image;
     }
-    fn to_color_space(&self) -> ColorType {
+    fn to_color_type(&self) -> ColorType {
         match self.color_space {
             ColorSpace::Rgb => match self.bit_depth {
                 BitDepth::B8 => ColorType::Rgb8,
