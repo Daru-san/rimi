@@ -1,5 +1,4 @@
 use super::color::ColorInfo;
-use dialoguer::Confirm;
 use image::imageops::FilterType;
 use image::{self, DynamicImage, ImageFormat, ImageReader};
 use std::io::ErrorKind;
@@ -29,7 +28,6 @@ pub fn save_image_format(
     image: &DynamicImage,
     out: &Path,
     format: Option<&str>,
-    overwrite: bool,
 ) -> Result<(), String> {
     let mut out_path = PathBuf::from(out);
     let image_format;
@@ -56,21 +54,12 @@ pub fn save_image_format(
         }
     }
 
-    match overwrite_if_existing(&out_path, overwrite) {
-        Ok(overwrite) => {
-            if overwrite {
-                match image.save_with_format(&out_path, image_format) {
-                    Ok(()) => Ok(()),
-                    Err(save_error) => Err(format!(
-                        "Error saving image file {:?}: {}",
-                        out_path, save_error
-                    )),
-                }
-            } else {
-                Err("Not overriding existing file.".to_string())
-            }
-        }
-        Err(check_overwrite_error) => Err(check_overwrite_error.to_string()),
+    match image.save_with_format(&out_path, image_format) {
+        Ok(()) => Ok(()),
+        Err(save_error) => Err(format!(
+            "Error saving image file {:?}: {}",
+            out_path, save_error
+        )),
     }
 }
 
@@ -144,25 +133,5 @@ pub fn remove_background(image: &mut DynamicImage) {
             }
         }
         *image = DynamicImage::ImageRgba32F(image32bit);
-    }
-}
-
-fn overwrite_if_existing(path: &Path, do_overwrite: bool) -> Result<bool, String> {
-    if do_overwrite {
-        return Ok(true);
-    }
-    match path.try_exists() {
-        Ok(path_exists) => match path_exists {
-            true => {
-                let message = format!("Overwrite existing file: {:?}?", path.to_string_lossy());
-                let confirm = Confirm::new().with_prompt(message).interact();
-                match confirm {
-                    Ok(val) => Ok(val),
-                    Err(confirm_error) => Err(confirm_error.to_string()),
-                }
-            }
-            false => Ok(true),
-        },
-        Err(path_exists_error) => Err(path_exists_error.to_string()),
     }
 }
