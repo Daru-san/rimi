@@ -1,6 +1,7 @@
 use super::RunSingle;
 use crate::app::command::{ImageArgs, ImageCommand};
 use crate::backend::error::TaskError;
+use crate::backend::paths::prompt_overwrite_single;
 use crate::backend::progress::AppProgress;
 use crate::backend::progress::SingleProgress;
 use crate::image::manipulator::{open_image, save_image_format};
@@ -31,6 +32,20 @@ impl RunSingle for ImageArgs {
             Some(path) => path,
             None => image_path,
         };
+
+        match output_path.try_exists() {
+            Ok(path_exists) => {
+                if path_exists && !self.overwrite {
+                    single_progress.suspend(|| -> Result<(), TaskError> {
+                        match prompt_overwrite_single(output_path) {
+                            Ok(()) => Ok(()),
+                            Err(error) => Err(TaskError::SingleError(error)),
+                        }
+                    })?;
+                }
+            }
+            Err(error) => return Err(error.into()),
+        }
 
         single_progress.finish_task(&format!(
             "Set output path: {}",
@@ -91,7 +106,7 @@ impl RunSingle for ImageArgs {
             output_path.to_path_buf().to_string_lossy()
         ));
 
-        match save_image_format(&image, output_path, self.format.as_deref(), self.overwrite) {
+        match save_image_format(&image, output_path, self.format.as_deref()) {
             Ok(()) => single_progress.finish_task("Image saved successfully"),
             Err(save_error) => {
                 single_progress.abort_task("Image failed to save");
