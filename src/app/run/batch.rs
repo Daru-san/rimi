@@ -312,6 +312,23 @@ impl BatchRunner {
     }
 }
 
+fn run_command(command: &ImageCommand, image: &mut DynamicImage) -> Result<DynamicImage> {
+    match command {
+        ImageCommand::Convert => Ok(take(image)),
+        ImageCommand::Resize(args) => match args.run(image) {
+            Ok(()) => Ok(take(image)),
+            Err(resize_error) => Err(resize_error),
+        },
+        ImageCommand::Recolor(args) => match args.run(image) {
+            Ok(()) => Ok(take(image)),
+            Err(recolor_error) => Err(recolor_error),
+        },
+        ImageCommand::Transparentize(args) => match args.run(image) {
+            Ok(()) => Ok(take(image)),
+            Err(removal_error) => Err(removal_error),
+        },
+    }
+}
 impl RunBatch for ImageArgs {
     fn run_batch(&self, command: &ImageCommand, verbosity: u32) -> Result<()> {
         BatchRunner::init(verbosity).run(command, self)
