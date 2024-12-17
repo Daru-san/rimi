@@ -23,11 +23,14 @@ struct BatchRunner {
 }
 
 impl BatchRunner {
-    fn init(verbosity: u32) -> Self {
+    fn init(verbosity: u32, task_count: usize) -> Self {
         Self {
             tasks_queue: Arc::new(Mutex::new(TaskQueue::new())),
             progress: Arc::new(Mutex::new(BatchProgress::init(verbosity))),
-            tasks_pool: ThreadPoolBuilder::new().num_threads(10).build().unwrap(),
+            tasks_pool: ThreadPoolBuilder::new()
+                .num_threads(task_count)
+                .build()
+                .unwrap(),
         }
     }
 
@@ -330,7 +333,7 @@ fn run_command(command: &ImageCommand, image: &mut DynamicImage) -> Result<Dynam
     }
 }
 impl RunBatch for ImageArgs {
-    fn run_batch(&self, command: &ImageCommand, verbosity: u32) -> Result<()> {
-        BatchRunner::init(verbosity).run(command, self)
+    fn run_batch(&self, command: &ImageCommand, verbosity: u32, task_count: usize) -> Result<()> {
+        BatchRunner::init(verbosity, task_count).run(command, self)
     }
 }

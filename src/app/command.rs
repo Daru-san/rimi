@@ -12,6 +12,7 @@ use transparent::TransparentArgs;
 
 use clap::{ArgGroup, CommandFactory, Parser, Subcommand};
 use std::path::PathBuf;
+use std::usize;
 
 use anyhow::Result;
 
@@ -63,6 +64,10 @@ pub struct ImageArgs {
     /// Output image(s) format
     #[clap(short, long, global = true)]
     pub format: Option<String>,
+
+    /// Tasks to run in parallel, spawns a thread for each Tasks
+    #[clap(short, long)]
+    pub tasks: usize,
 }
 
 #[derive(Parser)]
@@ -125,7 +130,11 @@ impl CommandArgs {
                 Some(command) => match self.image_args.images.len() {
                     0 => Err(AppError::NoImages.into()),
                     1 => Ok(self.image_args.run_single(command, verbosity)?),
-                    _ => Ok(self.image_args.run_batch(command, verbosity)?),
+                    _ => {
+                        Ok(self
+                            .image_args
+                            .run_batch(command, verbosity, self.image_args.tasks)?)
+                    }
                 },
                 None => Ok(clap::Command::print_help(&mut super::Args::command())?),
             },
