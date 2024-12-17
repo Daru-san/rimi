@@ -318,6 +318,17 @@ fn run_command(command: &ImageCommand, image: &mut DynamicImage) -> Result<Dynam
         },
     }
 }
+
+fn command_msg(command: &ImageCommand, image_name: &str) -> Result<String> {
+    let message = match command {
+        ImageCommand::Convert => "Converting ",
+        ImageCommand::Resize(_) => "Resizing ",
+        ImageCommand::Recolor(_) => "Recoloring ",
+        ImageCommand::Transparentize(_) => "Removing background ",
+    };
+    Ok(format!("{message} {image_name}"))
+}
+
 impl RunBatch for ImageArgs {
     fn run_batch(&self, command: &ImageCommand, verbosity: u32, task_count: usize) -> Result<()> {
         BatchRunner::init(verbosity, task_count).run(command, self)
