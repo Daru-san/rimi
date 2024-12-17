@@ -13,14 +13,14 @@ use anyhow::Result;
 const TASK_COUNT: usize = 3;
 
 struct BatchRunner {
-    tasks_queue: TaskQueue,
+    tasks_queue: Arc<Mutex<TaskQueue>>,
     progress: BatchProgress,
 }
 
 impl BatchRunner {
     fn init(verbosity: u32) -> Self {
         Self {
-            tasks_queue: TaskQueue::new(),
+            tasks_queue: Arc::new(Mutex::new(TaskQueue::new())),
             progress: BatchProgress::init(verbosity),
         }
     }
