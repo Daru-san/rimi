@@ -1,4 +1,7 @@
+use std::mem::take;
 use std::path::PathBuf;
+use std::sync::mpsc::channel;
+use std::sync::{Arc, Mutex};
 
 use crate::app::command::{ImageArgs, ImageCommand};
 use crate::backend::error::TaskError;
@@ -9,6 +12,7 @@ use crate::image::manipulator::{open_image, save_image_format};
 
 use super::RunBatch;
 use anyhow::Result;
+use rayon::ThreadPoolBuilder;
 
 const TASK_COUNT: usize = 3;
 
@@ -45,28 +49,52 @@ impl BatchRunner {
         self.progress
             .start_task(&format!("Deciding {} images", images));
 
-        let images = &args.images;
-        for image in images.iter() {
-            let task_id = self.tasks_queue.new_task(image);
+        let decoder_pool = ThreadPoolBuilder::new().num_threads(10).build().unwrap();
 
-            self.progress.start_sub_task(&format!(
-                "Decoding image: {:?}",
-                image.file_name().as_slice()
-            ));
+        let (image_sender, image_reciever) = channel();
 
-            let current_image = open_image(image);
+        decoder_pool.scope(|s| {
+            for image in args.images.clone().iter_mut() {
+                let tasks_queue = Arc::clone(&self.tasks_queue);
 
-            match current_image {
-                Ok(good_image) => {
-                    self.tasks_queue.decoded_task(&good_image, task_id);
-                    self.progress.finish_sub_task(&format!(
-                        "Image decoded: {}",
-                        image.as_path().to_string_lossy()
-                    ));
+                let new_image = Arc::new(take(image));
+
+                self.progress.start_sub_task(&format!(
+                    "Decoding image: {:?}",
+                    image.file_name().as_slice()
+                ));
+
+                let tx1 = image_sender.to_owned();
+                s.spawn(move |_| {
+                    let mut new_image = new_image.to_path_buf();
+
+                    let current_image = open_image(&new_image);
+
+                    let mut queue_lock = tasks_queue.lock().unwrap();
+
+                    let task_id = queue_lock.new_task(&new_image);
+
+                    match current_image {
+                        Ok(mut good_image) => {
+                            queue_lock.decoded_task(&mut good_image, task_id);
+                            tx1.send(Ok(take(&mut new_image))).unwrap();
+                        }
+                        Err(decode_error) => {
+                            queue_lock.fail_task(task_id, decode_error.clone());
+                            tx1.send(Err(decode_error)).unwrap();
+                        }
+                    }
+                });
+            }
+        });
+        while let Ok(result) = image_reciever.try_recv() {
+            match result {
+                Ok(image) => {
+                    self.progress
+                        .finish_sub_task(&format!("Image decoded: {:?}", image));
                 }
-                Err(decode_error) => {
-                    self.progress.error_sub_task(decode_error.as_str());
-                    self.tasks_queue.fail_task(task_id, decode_error);
+                Err(error) => {
+                    self.progress.error_sub_task(&format!("{:?}", error));
                 }
             }
         }
