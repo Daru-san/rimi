@@ -1,3 +1,4 @@
+use std::mem::take;
 use std::path::{Path, PathBuf};
 
 use image::DynamicImage;
@@ -70,11 +71,11 @@ impl TaskQueue {
         }
     }
 
-    pub fn decoded_task(&mut self, decoded_image: &DynamicImage, task_id: u32) {
+    pub fn decoded_task(&mut self, decoded_image: &mut DynamicImage, task_id: u32) {
         for task in self.tasks.iter_mut() {
             if task.id == task_id {
                 task.state = TaskState::Decoded;
-                task.image = decoded_image.clone();
+                task.image = take(decoded_image);
             }
         }
     }
@@ -87,11 +88,11 @@ impl TaskQueue {
         }
     }
 
-    pub fn processed_task(&mut self, processed_image: &DynamicImage, task_id: u32) {
+    pub fn processed_task(&mut self, processed_image: &mut DynamicImage, task_id: u32) {
         for task in self.tasks.iter_mut() {
             if task.id == task_id {
                 task.state = TaskState::Processed;
-                task.image = processed_image.clone();
+                task.image = take(processed_image);
             }
         }
     }
