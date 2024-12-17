@@ -99,21 +99,22 @@ impl BatchRunner {
             }
         }
 
-        if self.tasks_queue.has_failures() {
+        let queue_lock = self.tasks_queue.lock().unwrap();
+        if queue_lock.has_failures() {
             self.progress.finish_task(&format!(
                 "{} images were decoded with {} errors",
-                self.tasks_queue.decoded_tasks().len(),
-                self.tasks_queue.count_failures()
+                queue_lock.decoded_tasks().len(),
+                queue_lock.count_failures()
             ));
             if args.abort_on_error {
                 self.progress.abort_task(&format!(
                     "Image processing exited with {} errros.",
-                    self.tasks_queue.count_failures()
+                    queue_lock.count_failures()
                 ));
 
                 let mut errors = Vec::new();
 
-                self.tasks_queue.failed_tasks().iter().for_each(|task| {
+                queue_lock.failed_tasks().iter().for_each(|task| {
                     if let TaskState::Failed(error) = &task.state {
                         errors.push(error.to_string());
                     }
@@ -124,7 +125,7 @@ impl BatchRunner {
         } else {
             self.progress.finish_task(&format!(
                 "{} images were decoded successfully ^.^",
-                self.tasks_queue.decoded_tasks().len()
+                queue_lock.decoded_tasks().len()
             ));
         }
         Ok(())
@@ -132,20 +133,20 @@ impl BatchRunner {
 
     fn outpaths(&mut self, args: &ImageArgs) -> Result<()> {
         self.progress.start_task("Creating output paths");
+        let mut task_lock = self.tasks_queue.lock().unwrap();
 
         let destination_path = match &args.output {
             Some(path) => path.to_path_buf(),
             None => PathBuf::from("."),
         };
 
-        let paths: Vec<PathBuf> = self
-            .tasks_queue
+        let paths: Vec<PathBuf> = task_lock
             .decoded_tasks()
             .iter()
             .map(|task| task.image_path.to_path_buf())
             .collect();
 
-        let output_paths = match create_paths(
+        let mut output_paths = match create_paths(
             paths,
             destination_path,
             args.name_expr.as_deref(),
@@ -173,9 +174,9 @@ impl BatchRunner {
             Err(e) => return Err(TaskError::SingleError(e).into()),
         }
 
-        for (index, path) in output_paths.iter().enumerate() {
-            self.tasks_queue
-                .set_task_out_path(self.tasks_queue.decoded_task_ids()[index], path);
+        let ids = task_lock.decoded_task_ids().to_owned();
+        for (index, path) in output_paths.iter_mut().enumerate() {
+            task_lock.set_task_out_path(ids[index], path);
         }
 
         self.progress.finish_task("Paths created successfully.");
@@ -184,7 +185,8 @@ impl BatchRunner {
     }
 
     fn save_images(&mut self, args: &ImageArgs, command: &ImageCommand) -> Result<()> {
-        let decoded_tasks = self.tasks_queue.decoded_tasks().len();
+        let mut task_lock = self.tasks_queue.lock().unwrap();
+        let decoded_tasks = task_lock.decoded_tasks().len();
 
         self.progress
             .start_task(format!("Processing {} images", decoded_tasks).as_str());
@@ -192,11 +194,11 @@ impl BatchRunner {
         self.progress.sub_task_count(decoded_tasks);
 
         for _ in 0..decoded_tasks {
-            let task_id = self.tasks_queue.decoded_task_ids()[0];
+            let task_id = task_lock.decoded_task_ids()[0];
 
             let mut current_task = {
-                match self.tasks_queue.task_by_id_mut(task_id) {
-                    Some(task) => task.clone(),
+                match task_lock.task_by_id_mut(task_id) {
+                    Some(task) => std::mem::take(task),
                     _ => return Err(TaskError::NoSuchTask.into()),
                 }
             };
@@ -221,12 +223,10 @@ impl BatchRunner {
                     ));
                     match args.run(&mut current_task.image) {
                         Ok(()) => {
-                            self.tasks_queue
-                                .processed_task(&current_task.image, task_id);
+                            task_lock.processed_task(&mut current_task.image, task_id);
                         }
                         Err(resize_error) => {
-                            self.tasks_queue
-                                .fail_task(task_id, resize_error.to_string());
+                            task_lock.fail_task(task_id, resize_error.to_string());
                             self.progress
                                 .error_sub_task("Image resize exited with error.");
                         }
@@ -239,12 +239,10 @@ impl BatchRunner {
                     ));
                     match args.run(&mut current_task.image) {
                         Ok(()) => {
-                            self.tasks_queue
-                                .processed_task(&current_task.image, task_id);
+                            task_lock.processed_task(&mut current_task.image, task_id);
                         }
                         Err(recolor_error) => {
-                            self.tasks_queue
-                                .fail_task(task_id, recolor_error.to_string());
+                            task_lock.fail_task(task_id, recolor_error.to_string());
                             self.progress
                                 .error_sub_task("Image recolor exited with error.")
                         }
@@ -257,12 +255,10 @@ impl BatchRunner {
                     ));
                     match args.run(&mut current_task.image) {
                         Ok(()) => {
-                            self.tasks_queue
-                                .processed_task(&current_task.image, task_id);
+                            task_lock.processed_task(&mut current_task.image, task_id);
                         }
                         Err(removal_error) => {
-                            self.tasks_queue
-                                .fail_task(task_id, removal_error.to_string());
+                            task_lock.fail_task(task_id, removal_error.to_string());
                             self.progress
                                 .error_sub_task("Background removal exited with error.");
                         }
@@ -270,7 +266,7 @@ impl BatchRunner {
                 }
             };
 
-            if let Some(task) = self.tasks_queue.task_by_id(task_id) {
+            if let Some(task) = task_lock.task_by_id(task_id) {
                 if let TaskState::Failed(_) = task.state {
                     continue;
                 }
@@ -292,14 +288,14 @@ impl BatchRunner {
 
             match image_result {
                 Ok(()) => {
-                    self.tasks_queue.completed_task(task_id);
+                    task_lock.completed_task(task_id);
                     self.progress.finish_sub_task(&format!(
                         "Image saved successfully: {:?}",
                         &current_task.out_path.file_name().as_slice()
                     ));
                 }
                 Err(save_error) => {
-                    self.tasks_queue.fail_task(task_id, save_error.to_string());
+                    task_lock.fail_task(task_id, save_error.to_string());
                     self.progress.error_sub_task(&format!(
                         "Image processing failed with error: {:?}",
                         &current_task.out_path.file_name().as_slice(),
