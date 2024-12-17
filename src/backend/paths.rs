@@ -64,7 +64,7 @@ pub fn create_paths(
     Ok(paths)
 }
 
-pub fn paths_exist(paths: &Vec<PathBuf>) -> Result<Vec<PathBuf>, String> {
+pub fn paths_exist(paths: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
     let mut existing_paths = Vec::new();
 
     paths.iter().for_each(|path| {
