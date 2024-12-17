@@ -56,10 +56,6 @@ impl TaskQueue {
         self.next_id - 1
     }
 
-    pub fn task_by_id(&self, task_id: u32) -> Option<&ImageTask> {
-        self.tasks.iter().find(|task| task.id == task_id)
-    }
-
     pub fn task_by_id_mut(&mut self, task_id: u32) -> Option<&mut ImageTask> {
         self.tasks.iter_mut().find(|task| task.id == task_id)
     }
