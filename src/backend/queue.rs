@@ -5,8 +5,9 @@ use image::DynamicImage;
 
 use super::error::TaskError;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Default, PartialEq, Clone)]
 pub enum TaskState {
+    #[default]
     Pending,
     Decoded,
     Processed,
@@ -14,7 +15,7 @@ pub enum TaskState {
     Complete,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Default, PartialEq, Clone)]
 pub struct ImageTask {
     pub id: u32,
     pub image: DynamicImage,
@@ -120,6 +121,16 @@ impl TaskQueue {
         tasks
     }
 
+    pub fn processed_tasks(&self) -> Vec<&ImageTask> {
+        let mut tasks = Vec::new();
+        for task in &self.tasks {
+            if let TaskState::Processed = task.state {
+                tasks.push(task);
+            }
+        }
+        tasks
+    }
+
     pub fn decoded_tasks(&self) -> Vec<&ImageTask> {
         let mut tasks = Vec::new();
         for task in &self.tasks {
@@ -140,10 +151,10 @@ impl TaskQueue {
         ids
     }
 
-    pub fn set_task_out_path(&mut self, task_id: u32, path: &Path) {
+    pub fn set_task_out_path(&mut self, task_id: u32, path: &mut PathBuf) {
         for task in self.tasks.iter_mut() {
             if task.id == task_id {
-                task.out_path = path.to_path_buf();
+                task.out_path = take(path);
             }
         }
     }
