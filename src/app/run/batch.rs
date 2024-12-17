@@ -198,66 +198,91 @@ impl BatchRunner {
         self.tasks_pool.scope(|s| -> Result<()> {
             loop {
                 let tasks_queue = Arc::clone(&self.tasks_queue);
+
                 let progress = Arc::clone(&self.progress);
 
                 s.spawn(move |_| {
+                    let mut current_task = {
+                        let mut task_lock = tasks_queue.lock().unwrap();
+
+                        let task_id = if !task_lock.decoded_tasks().is_empty() {
+                            task_lock.decoded_tasks()[0].id
+                        } else {
+                            return;
+                        };
+
+                        let task = {
+                            match task_lock.task_by_id_mut(task_id) {
+                                Some(task) => match task.state {
+                                    TaskState::Decoded => take(task),
+                                    TaskState::Failed(_) => return,
+                                    _ => return,
+                                },
+                                _ => {
+                                    task_lock.fail_task(task_id, TaskError::NoSuchTask.to_string());
+                                    return;
+                                }
+                            }
+                        };
+
+                        task
+                    };
+
+                    {
+                        let progress_lock = progress.lock().unwrap();
+                        progress_lock.start_task(
+                            &command_msg(
+                                command,
+                                current_task.out_path.file_name().as_slice()[0]
+                                    .to_string_lossy()
+                                    .as_ref(),
+                            )
+                            .unwrap(),
+                        );
+                    }
+
+                    let result = run_command(command, &mut current_task.image);
+
                     let mut task_lock = tasks_queue.lock().unwrap();
+
                     let mut progress_lock = progress.lock().unwrap();
 
-                    let task_id = if !task_lock.decoded_tasks().is_empty() {
-                        task_lock.decoded_tasks()[0].id
-                    } else {
-                        return;
-                    };
-
-                    let mut current_task = {
-                        match task_lock.task_by_id_mut(task_id) {
-                            Some(task) => std::mem::take(task),
-                            _ => {
-                                task_lock.fail_task(task_id, TaskError::NoSuchTask.to_string());
-                                return;
-                            }
-                        }
-                    };
-
-                    progress_lock.start_task(&format!(
-                        "Processing image {:?}",
-                        current_task.out_path.file_name().as_slice()
-                    ));
-
-                    match run_command(command, &mut current_task.image) {
+                    match result {
                         Ok(mut image) => task_lock.processed_task(&mut image, current_task.id),
                         Err(error) => progress_lock.error_sub_task(&format!("Error: {}", error)),
                     };
                 });
 
                 let tasks_queue = Arc::clone(&self.tasks_queue);
+
                 let progress = Arc::clone(&self.progress);
 
                 s.spawn(move |_| {
-                    let mut task_lock = tasks_queue.lock().unwrap();
-
-                    let task_id = if !task_lock.processed_tasks().is_empty() {
-                        task_lock.processed_tasks()[0].id
-                    } else {
-                        return;
-                    };
-
                     let current_task = {
-                        match task_lock.task_by_id_mut(task_id) {
-                            Some(task) => std::mem::take(task),
-                            _ => {
-                                task_lock.fail_task(task_id, TaskError::NoSuchTask.to_string());
-                                return;
-                            }
-                        }
-                    };
+                        let mut task_lock = tasks_queue.lock().unwrap();
 
-                    if let Some(task) = task_lock.task_by_id(task_id) {
-                        if let TaskState::Failed(_) = task.state {
+                        let task_id = if !task_lock.processed_tasks().is_empty() {
+                            task_lock.processed_tasks()[0].id
+                        } else {
                             return;
-                        }
-                    }
+                        };
+
+                        let task = {
+                            match task_lock.task_by_id_mut(task_id) {
+                                Some(task) => match task.state {
+                                    TaskState::Processed => take(task),
+                                    TaskState::Failed(_) => return,
+                                    _ => return,
+                                },
+                                _ => {
+                                    task_lock.fail_task(task_id, TaskError::NoSuchTask.to_string());
+                                    return;
+                                }
+                            }
+                        };
+
+                        task
+                    };
 
                     let image_result = save_image_format(
                         &current_task.image,
@@ -266,17 +291,18 @@ impl BatchRunner {
                     );
 
                     let mut progress_lock = progress.lock().unwrap();
+                    let mut task_lock = tasks_queue.lock().unwrap();
 
                     match image_result {
                         Ok(()) => {
-                            task_lock.completed_task(task_id);
+                            task_lock.completed_task(current_task.id);
                             progress_lock.finish_sub_task(&format!(
                                 "Image saved successfully: {:?}",
                                 &current_task.out_path.file_name().as_slice()
                             ));
                         }
                         Err(save_error) => {
-                            task_lock.fail_task(task_id, save_error.to_string());
+                            task_lock.fail_task(current_task.id, save_error.to_string());
                             progress_lock.error_sub_task(&format!(
                                 "Image processing failed with error: {:?}",
                                 &current_task.out_path.file_name().as_slice(),
