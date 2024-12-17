@@ -276,6 +276,11 @@ impl BatchRunner {
                         "Image processing failed with error: {:?}",
                         &current_task.out_path.file_name().as_slice(),
                     ));
+                    self.progress.send_trace(&format!(
+                        "Image {:?} failed to process due to error: {}",
+                        &current_task.out_path.file_name().as_slice(),
+                        save_error
+                    ));
                 }
             }
         }
