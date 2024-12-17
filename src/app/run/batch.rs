@@ -130,7 +130,7 @@ impl BatchRunner {
             }
         };
 
-        match paths_exist(output_paths.clone()) {
+        match paths_exist(&output_paths) {
             Ok(paths) => {
                 if !paths.is_empty() && !args.overwrite {
                     let prompt = || -> Result<()> {
