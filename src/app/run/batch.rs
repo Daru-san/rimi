@@ -195,34 +195,20 @@ impl BatchRunner {
     }
 
     fn save_images(&mut self, args: &ImageArgs, command: &ImageCommand) -> Result<()> {
-        self.tasks_pool.scope_fifo(|s| -> Result<()> {
-            let task_lock = self.tasks_queue.lock().unwrap();
-
-            let decoded_tasks = task_lock.decoded_tasks().len();
-
-            {
-                let mut progress_lock = self.progress.lock().unwrap();
-
-                progress_lock.start_task(format!("Processing {} images", decoded_tasks).as_str());
-
-                progress_lock.sub_task_count(decoded_tasks);
-
-                drop(progress_lock);
-            }
-
-            drop(task_lock);
-
+        self.tasks_pool.scope(|s| -> Result<()> {
             loop {
                 let tasks_queue = Arc::clone(&self.tasks_queue);
                 let progress = Arc::clone(&self.progress);
 
-                let task_lock = tasks_queue.lock().unwrap();
-                let task_id = task_lock.decoded_task_ids()[0];
-                drop(task_lock);
-
-                s.spawn_fifo(move |_| {
+                s.spawn(move |_| {
                     let mut task_lock = tasks_queue.lock().unwrap();
                     let mut progress_lock = progress.lock().unwrap();
+
+                    let task_id = if !task_lock.decoded_tasks().is_empty() {
+                        task_lock.decoded_tasks()[0].id
+                    } else {
+                        return;
+                    };
 
                     let mut current_task = {
                         match task_lock.task_by_id_mut(task_id) {
@@ -248,7 +234,7 @@ impl BatchRunner {
                 let tasks_queue = Arc::clone(&self.tasks_queue);
                 let progress = Arc::clone(&self.progress);
 
-                s.spawn_fifo(move |_| {
+                s.spawn(move |_| {
                     let mut task_lock = tasks_queue.lock().unwrap();
 
                     let task_id = if !task_lock.processed_tasks().is_empty() {
