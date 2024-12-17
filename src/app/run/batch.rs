@@ -11,13 +11,15 @@ use crate::image::manipulator::{open_image, save_image_format};
 
 use super::RunBatch;
 use anyhow::Result;
-use rayon::ThreadPoolBuilder;
+use image::DynamicImage;
+use rayon::{ThreadPool, ThreadPoolBuilder};
 
 const TASK_COUNT: usize = 3;
 
 struct BatchRunner {
     tasks_queue: Arc<Mutex<TaskQueue>>,
     progress: Arc<Mutex<BatchProgress>>,
+    tasks_pool: ThreadPool,
 }
 
 impl BatchRunner {
@@ -25,6 +27,7 @@ impl BatchRunner {
         Self {
             tasks_queue: Arc::new(Mutex::new(TaskQueue::new())),
             progress: Arc::new(Mutex::new(BatchProgress::init(verbosity))),
+            tasks_pool: ThreadPoolBuilder::new().num_threads(10).build().unwrap(),
         }
     }
 
@@ -53,9 +56,7 @@ impl BatchRunner {
             progress_lock.start_task(&format!("Deciding {} images", images));
         }
 
-        let decoder_pool = ThreadPoolBuilder::new().num_threads(10).build().unwrap();
-
-        decoder_pool.scope(|s| {
+        self.tasks_pool.scope(|s| {
             for image in args.images.clone().iter_mut() {
                 let tasks_queue = Arc::clone(&self.tasks_queue);
 
@@ -191,128 +192,122 @@ impl BatchRunner {
     }
 
     fn save_images(&mut self, args: &ImageArgs, command: &ImageCommand) -> Result<()> {
-        let mut task_lock = self.tasks_queue.lock().unwrap();
+        self.tasks_pool.scope_fifo(|s| -> Result<()> {
+            let task_lock = self.tasks_queue.lock().unwrap();
 
-        let mut progress_lock = self.progress.lock().unwrap();
+            let decoded_tasks = task_lock.decoded_tasks().len();
 
-        let decoded_tasks = task_lock.decoded_tasks().len();
+            {
+                let mut progress_lock = self.progress.lock().unwrap();
 
-        progress_lock.start_task(format!("Processing {} images", decoded_tasks).as_str());
+                progress_lock.start_task(format!("Processing {} images", decoded_tasks).as_str());
 
-        progress_lock.sub_task_count(decoded_tasks);
+                progress_lock.sub_task_count(decoded_tasks);
 
-        for _ in 0..decoded_tasks {
-            let task_id = task_lock.decoded_task_ids()[0];
-
-            let mut current_task = {
-                match task_lock.task_by_id_mut(task_id) {
-                    Some(task) => std::mem::take(task),
-                    _ => return Err(TaskError::NoSuchTask.into()),
-                }
-            };
-
-            match command {
-                ImageCommand::Convert => match &args.format {
-                    Some(format) => progress_lock.start_sub_task(&format!(
-                        "Coverting image: {} to format {}",
-                        current_task.image_path.to_string_lossy(),
-                        format
-                    )),
-                    None => progress_lock.start_sub_task(&format!(
-                        "Converting image: {} as image {}",
-                        current_task.image_path.to_string_lossy(),
-                        current_task.out_path.to_string_lossy()
-                    )),
-                },
-                ImageCommand::Resize(args) => {
-                    progress_lock.start_sub_task(&format!(
-                        "Resizing image: {}",
-                        current_task.image_path.to_string_lossy()
-                    ));
-                    match args.run(&mut current_task.image) {
-                        Ok(()) => {
-                            task_lock.processed_task(&mut current_task.image, task_id);
-                        }
-                        Err(resize_error) => {
-                            task_lock.fail_task(task_id, resize_error.to_string());
-                            progress_lock.error_sub_task("Image resize exited with error.");
-                        }
-                    }
-                }
-                ImageCommand::Recolor(args) => {
-                    progress_lock.start_sub_task(&format!(
-                        "Recoloring image: {}",
-                        current_task.image_path.to_string_lossy()
-                    ));
-                    match args.run(&mut current_task.image) {
-                        Ok(()) => {
-                            task_lock.processed_task(&mut current_task.image, task_id);
-                        }
-                        Err(recolor_error) => {
-                            task_lock.fail_task(task_id, recolor_error.to_string());
-                            progress_lock.error_sub_task("Image recolor exited with error.")
-                        }
-                    }
-                }
-                ImageCommand::Transparentize(args) => {
-                    progress_lock.start_sub_task(&format!(
-                        "Removing background: {}",
-                        current_task.image_path.to_string_lossy()
-                    ));
-                    match args.run(&mut current_task.image) {
-                        Ok(()) => {
-                            task_lock.processed_task(&mut current_task.image, task_id);
-                        }
-                        Err(removal_error) => {
-                            task_lock.fail_task(task_id, removal_error.to_string());
-                            progress_lock.error_sub_task("Background removal exited with error.");
-                        }
-                    }
-                }
-            };
-
-            if let Some(task) = task_lock.task_by_id(task_id) {
-                if let TaskState::Failed(_) = task.state {
-                    continue;
-                }
+                drop(progress_lock);
             }
 
-            progress_lock.start_sub_task(
-                format!(
-                    "Saving image: {:?}",
-                    &current_task.out_path.file_name().as_slice()
-                )
-                .as_str(),
-            );
+            drop(task_lock);
 
-            let image_result = save_image_format(
-                &current_task.image,
-                &current_task.out_path,
-                args.format.as_deref(),
-            );
+            loop {
+                let tasks_queue = Arc::clone(&self.tasks_queue);
+                let progress = Arc::clone(&self.progress);
 
-            match image_result {
-                Ok(()) => {
-                    task_lock.completed_task(task_id);
-                    progress_lock.finish_sub_task(&format!(
-                        "Image saved successfully: {:?}",
-                        &current_task.out_path.file_name().as_slice()
+                let task_lock = tasks_queue.lock().unwrap();
+                let task_id = task_lock.decoded_task_ids()[0];
+                drop(task_lock);
+
+                s.spawn_fifo(move |_| {
+                    let mut task_lock = tasks_queue.lock().unwrap();
+                    let mut progress_lock = progress.lock().unwrap();
+
+                    let mut current_task = {
+                        match task_lock.task_by_id_mut(task_id) {
+                            Some(task) => std::mem::take(task),
+                            _ => {
+                                task_lock.fail_task(task_id, TaskError::NoSuchTask.to_string());
+                                return;
+                            }
+                        }
+                    };
+
+                    progress_lock.start_task(&format!(
+                        "Processing image {:?}",
+                        current_task.out_path.file_name().as_slice()
                     ));
-                }
-                Err(save_error) => {
-                    task_lock.fail_task(task_id, save_error.to_string());
-                    progress_lock.error_sub_task(&format!(
-                        "Image processing failed with error: {:?}",
-                        &current_task.out_path.file_name().as_slice(),
-                    ));
-                    progress_lock.send_trace(&format!(
-                        "Image {:?} failed to process due to error: {}",
-                        &current_task.out_path.file_name().as_slice(),
-                        save_error
-                    ));
+
+                    match run_command(command, &mut current_task.image) {
+                        Ok(mut image) => task_lock.processed_task(&mut image, current_task.id),
+                        Err(error) => progress_lock.error_sub_task(&format!("Error: {}", error)),
+                    };
+                });
+
+                let tasks_queue = Arc::clone(&self.tasks_queue);
+                let progress = Arc::clone(&self.progress);
+
+                s.spawn_fifo(move |_| {
+                    let mut task_lock = tasks_queue.lock().unwrap();
+
+                    let task_id = if !task_lock.processed_tasks().is_empty() {
+                        task_lock.processed_tasks()[0].id
+                    } else {
+                        return;
+                    };
+
+                    let current_task = {
+                        match task_lock.task_by_id_mut(task_id) {
+                            Some(task) => std::mem::take(task),
+                            _ => {
+                                task_lock.fail_task(task_id, TaskError::NoSuchTask.to_string());
+                                return;
+                            }
+                        }
+                    };
+
+                    if let Some(task) = task_lock.task_by_id(task_id) {
+                        if let TaskState::Failed(_) = task.state {
+                            return;
+                        }
+                    }
+
+                    let image_result = save_image_format(
+                        &current_task.image,
+                        &current_task.out_path,
+                        args.format.as_deref(),
+                    );
+
+                    let mut progress_lock = progress.lock().unwrap();
+
+                    match image_result {
+                        Ok(()) => {
+                            task_lock.completed_task(task_id);
+                            progress_lock.finish_sub_task(&format!(
+                                "Image saved successfully: {:?}",
+                                &current_task.out_path.file_name().as_slice()
+                            ));
+                        }
+                        Err(save_error) => {
+                            task_lock.fail_task(task_id, save_error.to_string());
+                            progress_lock.error_sub_task(&format!(
+                                "Image processing failed with error: {:?}",
+                                &current_task.out_path.file_name().as_slice(),
+                            ));
+                            progress_lock.send_trace(&format!(
+                                "Image {:?} failed to process due to error: {}",
+                                &current_task.out_path.file_name().as_slice(),
+                                save_error
+                            ));
+                        }
+                    }
+                });
+
+                let tasks_queue = Arc::clone(&self.tasks_queue);
+                if tasks_queue.lock().unwrap().decoded_tasks().is_empty() {
+                    break;
                 }
             }
-        }
+            Ok(())
+        })?;
         Ok(())
     }
 }
