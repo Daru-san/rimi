@@ -68,6 +68,10 @@ impl TaskQueue {
         });
     }
 
+    pub fn completed_task(&mut self, task_id: u32) {
+        self.tasks.retain(|task| task.id != task_id);
+    }
+
     pub fn decoded_task(&mut self, decoded_image: &mut DynamicImage, task_id: u32) {
         self.tasks.iter_mut().for_each(|task| {
             if task.id == task_id {
