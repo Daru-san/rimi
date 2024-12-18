@@ -1,7 +1,7 @@
 use super::color::ColorInfo;
 use image::imageops::FilterType;
 use image::{DynamicImage, ImageFormat, ImageReader};
-use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
+use rayon::iter::{ParallelBridge, ParallelIterator};
 use std::io::{Cursor, ErrorKind};
 use std::mem::take;
 use std::path::{Path, PathBuf};
