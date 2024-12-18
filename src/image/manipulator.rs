@@ -1,6 +1,6 @@
 use super::color::ColorInfo;
 use image::imageops::FilterType;
-use image::{load_from_memory, DynamicImage, ImageFormat, ImageReader};
+use image::{DynamicImage, ImageFormat, ImageReader};
 use std::io::{Cursor, ErrorKind};
 use std::mem::take;
 use std::path::{Path, PathBuf};
@@ -25,7 +25,10 @@ pub fn open_image(image_path: &Path) -> Result<DynamicImage, String> {
     }
 }
 
-pub fn convert_image(image: &DynamicImage, format: Option<&str>) -> Result<DynamicImage, String> {
+pub fn convert_image(
+    image: &mut DynamicImage,
+    format: Option<&str>,
+) -> Result<DynamicImage, String> {
     let mut out_path = PathBuf::from(".");
     let image_format;
 
@@ -49,6 +52,13 @@ pub fn convert_image(image: &DynamicImage, format: Option<&str>) -> Result<Dynam
             Ok(format) => format,
             Err(_) => return Err("Could not obtain image format from output path".to_string()),
         }
+    }
+
+    // Avif cannot be decoded in memory,
+    // hence we return and leave it to save_image_format()
+    // TODO: Fix Avif decoding
+    if image_format == ImageFormat::Avif {
+        return Ok(take(image));
     }
 
     let mut cursor = Cursor::new(Vec::new());
