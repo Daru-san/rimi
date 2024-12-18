@@ -1,7 +1,8 @@
 use super::color::ColorInfo;
 use image::imageops::FilterType;
-use image::{self, DynamicImage, ImageFormat, ImageReader};
-use std::io::ErrorKind;
+use image::{load_from_memory, DynamicImage, ImageFormat, ImageReader};
+use std::io::{Cursor, ErrorKind};
+use std::mem::take;
 use std::path::{Path, PathBuf};
 
 pub fn open_image(image_path: &Path) -> Result<DynamicImage, String> {
@@ -21,6 +22,53 @@ pub fn open_image(image_path: &Path) -> Result<DynamicImage, String> {
                 image_path, file_error
             )),
         },
+    }
+}
+
+pub fn convert_image(image: &DynamicImage, format: Option<&str>) -> Result<DynamicImage, String> {
+    let mut out_path = PathBuf::from(".");
+    let image_format;
+
+    if let Some(format_extension) = format {
+        image_format = match ImageFormat::from_extension(format_extension) {
+            Some(format) => format,
+            _ => {
+                return Err(format!(
+                    "Couldn't get image format from extension: {}",
+                    format_extension
+                ))
+            }
+        };
+        let extension = image_format.extensions_str();
+        if extension.is_empty() {
+            return Err("Image format has no valid file extension".to_string());
+        }
+        out_path.set_extension(extension[0]);
+    } else {
+        image_format = match ImageFormat::from_path(&out_path) {
+            Ok(format) => format,
+            Err(_) => return Err("Could not obtain image format from output path".to_string()),
+        }
+    }
+
+    let mut cursor = Cursor::new(Vec::new());
+
+    match image.write_to(&mut cursor, image_format) {
+        Ok(()) => (),
+        Err(e) => return Err(e.to_string()),
+    };
+
+    let reader = ImageReader::new(cursor).with_guessed_format();
+
+    match reader {
+        Ok(image) => match image.decode() {
+            Ok(mut image) => Ok(take(&mut image)),
+            Err(e) => Err(e.to_string()),
+        },
+        Err(save_error) => Err(format!(
+            "Error converting image file {:?}: {}",
+            out_path, save_error
+        )),
     }
 }
 
