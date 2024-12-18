@@ -61,9 +61,12 @@ impl TaskQueue {
     }
 
     pub fn working_task(&mut self, task_id: u32) {
-        self.tasks.iter_mut().for_each(|task| {
+        self.tasks.iter_mut().try_for_each(|task| {
             if task.id == task_id {
                 task.state = TaskState::Working;
+                None
+            } else {
+                Some(())
             }
         });
     }
@@ -73,29 +76,38 @@ impl TaskQueue {
     }
 
     pub fn decoded_task(&mut self, decoded_image: &mut DynamicImage, task_id: u32) {
-        self.tasks.iter_mut().for_each(|task| {
+        self.tasks.iter_mut().try_for_each(|task| {
             if task.id == task_id {
                 task.state = TaskState::Decoded;
                 task.image = take(decoded_image);
+                None
+            } else {
+                Some(())
             }
         });
     }
 
     pub fn fail_task(&mut self, task_id: u32, task_error: String) {
-        self.tasks.iter_mut().for_each(|task| {
+        self.tasks.iter_mut().try_for_each(|task| {
             if task.id == task_id {
                 task.state = TaskState::Failed(TaskError::SingleError(task_error.to_string()));
+                None
+            } else {
+                Some(())
             }
         });
     }
 
     pub fn processed_task(&mut self, processed_image: &mut DynamicImage, task_id: u32) {
-        self.tasks.iter_mut().for_each(|task| {
+        self.tasks.iter_mut().try_for_each(|task| {
             if task.id == task_id {
                 task.state = TaskState::Processed;
                 task.image = take(processed_image);
+                None
+            } else {
+                Some(())
             }
-        })
+        });
     }
 
     pub fn has_failures(&self) -> bool {
@@ -138,10 +150,13 @@ impl TaskQueue {
     }
 
     pub fn set_task_out_path(&mut self, task_id: u32, path: &mut PathBuf) {
-        for task in self.tasks.iter_mut() {
+        self.tasks.iter_mut().try_for_each(|task| {
             if task.id == task_id {
                 task.out_path = take(path);
+                None
+            } else {
+                Some(())
             }
-        }
+        });
     }
 }
