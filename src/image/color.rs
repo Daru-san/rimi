@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use std::mem::take;
 use std::str::FromStr;
 
 use clap::ValueEnum;
@@ -125,7 +126,7 @@ impl ColorInfo {
             ColorType::Rgba16 => DynamicImage::ImageRgba16(image.to_rgba16()),
             ColorType::Rgb32F => DynamicImage::ImageRgb32F(image.to_rgb32f()),
             ColorType::Rgba32F => DynamicImage::ImageRgba32F(image.to_rgba32f()),
-            _ => image.clone(),
+            _ => take(image),
         };
     }
     fn to_color_type(&self) -> ColorType {
