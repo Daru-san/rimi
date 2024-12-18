@@ -11,8 +11,8 @@ pub enum TaskState {
     Pending,
     Decoded,
     Processed,
+    Working,
     Failed(TaskError),
-    Complete,
 }
 
 #[derive(Debug, Default, PartialEq, Clone)]
@@ -60,10 +60,10 @@ impl TaskQueue {
         self.tasks.iter_mut().find(|task| task.id == task_id)
     }
 
-    pub fn completed_task(&mut self, task_id: u32) {
+    pub fn working_task(&mut self, task_id: u32) {
         self.tasks.iter_mut().for_each(|task| {
             if task.id == task_id {
-                task.state = TaskState::Complete;
+                task.state = TaskState::Working;
             }
         });
     }
