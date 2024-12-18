@@ -1,6 +1,6 @@
 use super::color::ColorInfo;
 use image::imageops::FilterType;
-use image::{DynamicImage, ImageFormat, ImageReader};
+use image::{load_from_memory, DynamicImage, ImageFormat, ImageReader};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use std::io::{Cursor, ErrorKind};
 use std::mem::take;
@@ -69,17 +69,10 @@ pub fn convert_image(
         Err(e) => return Err(e.to_string()),
     };
 
-    let reader = ImageReader::new(cursor).with_guessed_format();
-
-    match reader {
-        Ok(image) => match image.decode() {
-            Ok(mut image) => Ok(take(&mut image)),
-            Err(e) => Err(e.to_string()),
-        },
-        Err(save_error) => Err(format!(
-            "Error converting image file {:?}: {}",
-            out_path, save_error
-        )),
+    let result = load_from_memory(&cursor.into_inner());
+    match result {
+        Ok(mut image) => Ok(take(&mut image)),
+        Err(e) => Err(e.to_string()),
     }
 }
 
