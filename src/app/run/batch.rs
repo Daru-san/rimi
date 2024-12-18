@@ -57,8 +57,8 @@ impl BatchRunner {
             let current_image = open_image(image);
 
             match current_image {
-                Ok(good_image) => {
-                    self.tasks_queue.decoded_task(&good_image, task_id);
+                Ok(mut good_image) => {
+                    self.tasks_queue.decoded_task(&mut good_image, task_id);
                     self.progress.finish_sub_task(&format!(
                         "Image decoded: {}",
                         image.as_path().to_string_lossy()
@@ -194,7 +194,7 @@ impl BatchRunner {
                     match args.run(&mut current_task.image) {
                         Ok(()) => {
                             self.tasks_queue
-                                .processed_task(&current_task.image, task_id);
+                                .processed_task(&mut current_task.image, task_id);
                         }
                         Err(resize_error) => {
                             self.tasks_queue
@@ -212,7 +212,7 @@ impl BatchRunner {
                     match args.run(&mut current_task.image) {
                         Ok(()) => {
                             self.tasks_queue
-                                .processed_task(&current_task.image, task_id);
+                                .processed_task(&mut current_task.image, task_id);
                         }
                         Err(recolor_error) => {
                             self.tasks_queue
@@ -230,7 +230,7 @@ impl BatchRunner {
                     match args.run(&mut current_task.image) {
                         Ok(()) => {
                             self.tasks_queue
-                                .processed_task(&current_task.image, task_id);
+                                .processed_task(&mut current_task.image, task_id);
                         }
                         Err(removal_error) => {
                             self.tasks_queue
