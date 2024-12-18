@@ -1,6 +1,7 @@
 use super::color::ColorInfo;
 use image::imageops::FilterType;
 use image::{DynamicImage, ImageFormat, ImageReader};
+use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 use std::io::{Cursor, ErrorKind};
 use std::mem::take;
 use std::path::{Path, PathBuf};
@@ -171,31 +172,31 @@ pub fn remove_background(image: &mut DynamicImage) {
     match color_info.bit_depth {
         B8 => {
             let mut image8bit = image.to_rgba8();
-            for p in image8bit.pixels_mut() {
-                if p[0] == 255 && p[1] == 255 && p[2] == 255 {
-                    p[3] = 0;
+            image8bit.pixels_mut().par_bridge().for_each(|pixel| {
+                if pixel[0] == 255 && pixel[1] == 255 && pixel[2] == 255 {
+                    pixel[3] = 0;
                 }
-            }
+            });
             *image = DynamicImage::ImageRgba8(image8bit);
         }
 
         B16 => {
             let mut image16bit = image.to_rgba16();
-            for p in image16bit.pixels_mut() {
-                if p[0] == 255 && p[1] == 255 && p[2] == 255 {
-                    p[3] = 0;
+            image16bit.pixels_mut().par_bridge().for_each(|pixel| {
+                if pixel[0] == 255 && pixel[1] == 255 && pixel[2] == 255 {
+                    pixel[3] = 0;
                 }
-            }
+            });
             *image = DynamicImage::ImageRgba16(image16bit);
         }
 
         B32 => {
             let mut image32bit = image.to_rgba32f();
-            for p in image32bit.pixels_mut() {
-                if p[0] == 255.0 && p[1] == 255.0 && p[2] == 255.0 {
-                    p[3] = 0.0;
+            image32bit.pixels_mut().par_bridge().for_each(|pixel| {
+                if pixel[0] == 255.0 && pixel[1] == 255.0 && pixel[2] == 255.0 {
+                    pixel[3] = 0.0;
                 }
-            }
+            });
             *image = DynamicImage::ImageRgba32F(image32bit);
         }
     }
