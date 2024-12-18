@@ -41,11 +41,11 @@ pub struct ImageArgs {
     pub image_command: Option<ImageCommand>,
 
     /// Images to be converted
-    #[clap(short,long,value_parser,num_args = 1..1000,value_delimiter = ' ',global = true)]
+    #[clap(short, long, value_parser, num_args(1..1000), value_delimiter(' '), global(true))]
     pub images: Vec<PathBuf>,
 
     /// Output path, use a directory when batch converting, cannot be used with format
-    #[clap(short, long, global = true)]
+    #[clap(short, long, global(true))]
     pub output: Option<PathBuf>,
 
     /// Abort on error
@@ -53,16 +53,20 @@ pub struct ImageArgs {
     pub abort_on_error: bool,
 
     /// Overwrite existing images
-    #[clap(short = 'x', long, global = true)]
+    #[clap(short('x'), long, global(true))]
     pub overwrite: bool,
 
     /// Output file name expression
-    #[clap(short, long, global = true)]
+    #[clap(short, long, global(true))]
     pub name_expr: Option<String>,
 
     /// Output image(s) format
-    #[clap(short, long, global = true)]
+    #[clap(short, long, global(true))]
     pub format: Option<String>,
+
+    /// Tasks to run in parallel, spawns a thread for each Tasks
+    #[clap(short, long, hide(true), default_value("3"))]
+    pub parallel_tasks: usize,
 }
 
 #[derive(Parser)]
@@ -79,15 +83,15 @@ struct VerbosityArgs {
 #[derive(Subcommand, Debug)]
 pub enum ImageCommand {
     /// Convert an image
-    #[clap(short_flag = 'c')]
+    #[clap(short_flag('c'))]
     Convert,
 
     /// Resize an image
-    #[clap(short_flag = 'r')]
+    #[clap(short_flag('r'))]
     Resize(ResizeArgs),
 
     /// Remove the background from an image
-    #[clap(short_flag = 't')]
+    #[clap(short_flag('t'))]
     Transparentize(TransparentArgs),
 
     /// Modify the image color type
