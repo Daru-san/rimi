@@ -202,20 +202,25 @@ impl BatchRunner {
 
                 let progress = Arc::clone(&self.progress);
 
-                s.spawn(move |_| {
-                    let mut current_task = {
-                        let mut task_lock = tasks_queue.lock().unwrap();
+                let has_decoded_tasks = {
+                    let task_lock = tasks_queue.lock().unwrap();
+                    !task_lock.decoded_tasks().is_empty()
+                };
 
-                        let task_id = if !task_lock.decoded_tasks().is_empty() {
-                            task_lock.decoded_tasks()[0].id
-                        } else {
-                            return;
-                        };
+                if has_decoded_tasks {
+                    s.spawn(move |_| {
+                        let (task_id, mut decoded_image, out_path) = {
+                            let mut task_lock = tasks_queue.lock().unwrap();
 
-                        let task = {
+                            let task_id = if !task_lock.decoded_tasks().is_empty() {
+                                task_lock.decoded_tasks()[0].id
+                            } else {
+                                return;
+                            };
+
                             match task_lock.task_by_id_mut(task_id) {
                                 Some(task) => match task.state {
-                                    TaskState::Decoded => take(task),
+                                    TaskState::Decoded => (task.id, take(&mut task.image), ""),
                                     TaskState::Failed(_) => return,
                                     _ => return,
                                 },
@@ -226,37 +231,31 @@ impl BatchRunner {
                             }
                         };
 
-                        task
-                    };
+                        {
+                            let progress_lock = progress.lock().unwrap();
+                            progress_lock.start_task(&command_msg(command, out_path).unwrap());
+                        }
 
-                    {
-                        let progress_lock = progress.lock().unwrap();
-                        progress_lock.start_task(
-                            &command_msg(
-                                command,
-                                current_task.out_path.file_name().as_slice()[0]
-                                    .to_string_lossy()
-                                    .as_ref(),
-                            )
-                            .unwrap(),
-                        );
-                    }
+                        let result = run_command(command, &mut decoded_image);
 
-                    let result = run_command(command, &mut current_task.image);
+                        let mut task_lock = tasks_queue.lock().unwrap();
 
-                    let mut task_lock = tasks_queue.lock().unwrap();
+                        let mut progress_lock = progress.lock().unwrap();
 
-                    let mut progress_lock = progress.lock().unwrap();
-
-                    match result {
-                        Ok(mut image) => task_lock.processed_task(&mut image, current_task.id),
-                        Err(error) => progress_lock.error_sub_task(&format!("Error: {}", error)),
-                    };
-                });
+                        match result {
+                            Ok(mut image) => task_lock.processed_task(&mut image, task_id),
+                            Err(error) => {
+                                progress_lock.error_sub_task(&format!("Error: {}", error));
+                                task_lock.fail_task(task_id, error.to_string());
+                            }
+                        };
+                    });
+                }
 
                 let tasks_queue = Arc::clone(&self.tasks_queue);
 
                 let progress = Arc::clone(&self.progress);
+
 
                 s.spawn(move |_| {
                     let current_task = {
