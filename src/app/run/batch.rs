@@ -13,6 +13,8 @@ use crate::image::manipulator::{convert_image, open_image, save_image_format};
 use super::RunBatch;
 use anyhow::{Error, Result};
 use image::DynamicImage;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::slice::ParallelSlice;
 use rayon::{ThreadPool, ThreadPoolBuilder};
 
 const TASK_COUNT: usize = 3;
@@ -63,48 +65,40 @@ impl BatchRunner {
             progress_lock.start_task(&format!("Deciding {} images", images));
         }
 
-        self.tasks_pool.scope(|s| {
-            for image in args.images.clone().iter_mut() {
-                let tasks_queue = Arc::clone(&self.tasks_queue);
+        let tasks_queue = &self.tasks_queue;
 
-                let new_image = Arc::new(take(image));
+        let progress = &self.progress;
 
-                let progress = Arc::clone(&self.progress);
+        args.images.par_iter().for_each(|image| {
+            let progress_lock = progress.lock().unwrap();
 
-                let progress_lock = progress.lock().unwrap();
+            progress_lock.start_sub_task(&format!(
+                "Decoding image: {:?}",
+                image.file_name().as_slice()
+            ));
 
-                progress_lock.start_sub_task(&format!(
-                    "Decoding image: {:?}",
-                    image.file_name().as_slice()
-                ));
+            drop(progress_lock);
 
-                drop(progress_lock);
+            let current_image = open_image(image);
 
-                s.spawn(move |_| {
-                    let new_image = new_image.to_path_buf();
+            let mut queue_lock = tasks_queue.lock().unwrap();
 
-                    let current_image = open_image(&new_image);
+            let task_id = queue_lock.new_task(image);
 
-                    let mut queue_lock = tasks_queue.lock().unwrap();
+            let mut progress_lock = progress.lock().unwrap();
 
-                    let task_id = queue_lock.new_task(&new_image);
-
-                    let mut progress_lock = progress.lock().unwrap();
-
-                    match current_image {
-                        Ok(mut good_image) => {
-                            queue_lock.decoded_task(&mut good_image, task_id);
-                            progress_lock.finish_sub_task(&format!(
-                                "Image decoded: {:?}",
-                                new_image.file_name().as_slice()
-                            ));
-                        }
-                        Err(decode_error) => {
-                            queue_lock.fail_task(task_id, decode_error.clone());
-                            progress_lock.error_sub_task(&format!("{:?}", decode_error));
-                        }
-                    }
-                });
+            match current_image {
+                Ok(mut good_image) => {
+                    queue_lock.decoded_task(&mut good_image, task_id);
+                    progress_lock.finish_sub_task(&format!(
+                        "Image decoded: {:?}",
+                        image.file_name().as_slice()
+                    ));
+                }
+                Err(decode_error) => {
+                    queue_lock.fail_task(task_id, decode_error.clone());
+                    progress_lock.error_sub_task(&format!("{:?}", decode_error));
+                }
             }
         });
 
