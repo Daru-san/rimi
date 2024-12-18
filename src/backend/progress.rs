@@ -8,6 +8,7 @@ pub trait AppProgress {
     fn start_task(&self, message: &str);
     fn finish_task(&self, message: &str);
     fn abort_task(&self, message: &str);
+    fn send_trace(&self, message: &str);
     fn suspend<F: FnOnce() -> R, R>(&self, f: F) -> R;
     fn exit(&self);
 }
@@ -73,6 +74,10 @@ impl AppProgress for SingleProgress {
 
     fn abort_task(&self, message: &str) {
         self.progress_bar.abandon_with_message(message.to_string());
+    }
+
+    fn send_trace(&self, message: &str) {
+        self.progress_bar.println(message);
     }
 
     fn exit(&self) {
@@ -180,6 +185,10 @@ impl AppProgress for BatchProgress {
 
     fn suspend<F: FnOnce() -> R, R>(&self, f: F) -> R {
         self.multi_progress.suspend(f)
+    }
+
+    fn send_trace(&self, message: &str) {
+        self.multi_progress.println(message).unwrap();
     }
 
     fn exit(&self) {
