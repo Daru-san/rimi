@@ -1,10 +1,12 @@
+use anyhow::Error;
+
 use super::RunSingle;
 use crate::app::command::{ImageArgs, ImageCommand};
 use crate::backend::error::TaskError;
 use crate::backend::paths::prompt_overwrite_single;
 use crate::backend::progress::AppProgress;
 use crate::backend::progress::SingleProgress;
-use crate::image::manipulator::{open_image, save_image_format};
+use crate::image::manipulator::{convert_image, open_image, save_image_format};
 
 impl RunSingle for ImageArgs {
     fn run_single(&self, command: &ImageCommand, verbosity: u32) -> anyhow::Result<()> {
@@ -58,11 +60,17 @@ impl RunSingle for ImageArgs {
 
         match command {
             ImageCommand::Convert => match &self.format {
-                Some(format) => progress.finish_task(&format!(
-                    "Coverting image: {} to format {}",
-                    image_path.to_path_buf().to_string_lossy(),
-                    format
-                )),
+                Some(format) => {
+                    progress.finish_task(&format!(
+                        "Coverting image: {} to format {}",
+                        image_path.to_path_buf().to_string_lossy(),
+                        format
+                    ));
+                    image = match convert_image(&image, Some(format)) {
+                        Ok(image) => image,
+                        Err(e) => return Err(Error::msg(e)),
+                    };
+                }
                 None => progress.finish_task(&format!(
                     "Converting image: {} as image {}",
                     image_path.to_path_buf().to_string_lossy(),
