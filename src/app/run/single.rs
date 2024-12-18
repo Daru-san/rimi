@@ -66,7 +66,7 @@ impl RunSingle for ImageArgs {
                         image_path.to_path_buf().to_string_lossy(),
                         format
                     ));
-                    image = match convert_image(&image, Some(format)) {
+                    image = match convert_image(&mut image, Some(format)) {
                         Ok(image) => image,
                         Err(e) => return Err(Error::msg(e)),
                     };
