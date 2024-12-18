@@ -8,10 +8,10 @@ use crate::backend::error::TaskError;
 use crate::backend::paths::{create_paths, paths_exist, prompt_overwrite};
 use crate::backend::progress::{AppProgress, BatchProgress};
 use crate::backend::queue::{TaskQueue, TaskState};
-use crate::image::manipulator::{open_image, save_image_format};
+use crate::image::manipulator::{convert_image, open_image, save_image_format};
 
 use super::RunBatch;
-use anyhow::Result;
+use anyhow::{Error, Result};
 use image::DynamicImage;
 use rayon::{ThreadPool, ThreadPoolBuilder};
 
@@ -43,7 +43,7 @@ impl BatchRunner {
 
         self.outpaths(args)?;
 
-        self.process_images(command)?;
+        self.process_images(command, args.format.as_deref())?;
 
         self.save_images(args)?;
 
@@ -198,7 +198,7 @@ impl BatchRunner {
         Ok(())
     }
 
-    fn process_images(&mut self, command: &ImageCommand) -> Result<()> {
+    fn process_images(&mut self, command: &ImageCommand, format: Option<&str>) -> Result<()> {
         self.tasks_pool.scope(|s| -> Result<()> {
             let has_images = Arc::new(AtomicBool::new(true));
 
@@ -247,7 +247,7 @@ impl BatchRunner {
                         );
                     }
 
-                    let result = run_command(command, &mut processed_image);
+                    let result = run_command(command, &mut processed_image, format);
 
                     let mut task_lock = tasks_queue.lock().unwrap();
 
@@ -347,9 +347,16 @@ impl BatchRunner {
     }
 }
 
-fn run_command(command: &ImageCommand, image: &mut DynamicImage) -> Result<DynamicImage> {
+fn run_command(
+    command: &ImageCommand,
+    image: &mut DynamicImage,
+    format: Option<&str>,
+) -> Result<DynamicImage> {
     match command {
-        ImageCommand::Convert => Ok(take(image)),
+        ImageCommand::Convert => match convert_image(image, format) {
+            Ok(mut image) => Ok(take(&mut image)),
+            Err(convert_error) => Err(Error::msg(convert_error)),
+        },
         ImageCommand::Resize(args) => match args.run(image) {
             Ok(()) => Ok(take(image)),
             Err(resize_error) => Err(resize_error),
