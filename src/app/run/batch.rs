@@ -29,6 +29,7 @@ impl BatchRunner {
             progress: Arc::new(Mutex::new(BatchProgress::init(verbosity))),
             tasks_pool: ThreadPoolBuilder::new()
                 .num_threads(task_count)
+                .thread_name(|i| format!("Pool thread {i}"))
                 .build()
                 .unwrap(),
         }
