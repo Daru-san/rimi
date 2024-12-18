@@ -14,7 +14,6 @@ use super::RunBatch;
 use anyhow::{Error, Result};
 use image::DynamicImage;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use rayon::slice::ParallelSlice;
 use rayon::{ThreadPool, ThreadPoolBuilder};
 
 const TASK_COUNT: usize = 3;
