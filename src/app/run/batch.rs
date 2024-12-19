@@ -5,7 +5,7 @@ use std::sync::Mutex;
 use crate::app::command::{ImageArgs, ImageCommand};
 use crate::backend::error::TaskError;
 use crate::backend::paths::{create_paths, paths_exist, prompt_overwrite};
-use crate::backend::progress::{AppProgress, BatchProgress};
+use crate::backend::progress::{AppProgressBar, BatchProgressBar};
 use crate::backend::queue::{TaskQueue, TaskState};
 use crate::image::manipulator::{open_image, save_image_format};
 
@@ -17,20 +17,18 @@ const TASK_COUNT: usize = 4;
 
 struct BatchRunner {
     tasks_queue: Mutex<TaskQueue>,
-    progress: Mutex<BatchProgress>,
+    progress: Mutex<BatchProgressBar>,
 }
 
 impl BatchRunner {
     fn init(verbosity: u32) -> Self {
         Self {
             tasks_queue: Mutex::new(TaskQueue::new()),
-            progress: Mutex::new(BatchProgress::init(verbosity)),
+            progress: Mutex::new(BatchProgressBar::init(verbosity, TASK_COUNT)),
         }
     }
 
     fn run(&mut self, command: &ImageCommand, args: &ImageArgs) -> Result<()> {
-        self.progress.lock().unwrap().task_count(TASK_COUNT);
-
         self.decode_images(args)?;
 
         self.outpaths(args)?;
@@ -47,11 +45,9 @@ impl BatchRunner {
     fn decode_images(&mut self, args: &ImageArgs) -> Result<()> {
         let images = args.images.len() - 1;
         {
-            let mut progress_lock = self.progress.lock().unwrap();
+            let progress_lock = self.progress.lock().unwrap();
 
-            progress_lock.sub_task_count(images);
-
-            progress_lock.start_task(&format!("Deciding {} images", images));
+            progress_lock.spawn_new(images, &format!("Deciding {} images", images));
         }
 
         let tasks_queue = &self.tasks_queue;
@@ -59,8 +55,8 @@ impl BatchRunner {
         let progress = &self.progress;
 
         args.images.par_iter().for_each(|image| {
-            if let Ok(mut progress_lock) = progress.try_lock() {
-                progress_lock.start_sub_task(&format!(
+            if let Ok(progress_lock) = progress.try_lock() {
+                progress_lock.start_task(&format!(
                     "Decoding image: {:?}",
                     image.file_name().as_slice()
                 ));
@@ -88,13 +84,13 @@ impl BatchRunner {
         let queue_lock = self.tasks_queue.lock().unwrap();
 
         if queue_lock.has_failures() {
-            progress_lock.finish_task(&format!(
+            progress_lock.message(&format!(
                 "{} images were decoded with {} errors",
                 queue_lock.decoded_tasks().len(),
                 queue_lock.count_failures()
             ));
             if args.abort_on_error {
-                progress_lock.abort_task(&format!(
+                progress_lock.abort(&format!(
                     "Image processing exited with {} errros.",
                     queue_lock.count_failures()
                 ));
@@ -110,7 +106,7 @@ impl BatchRunner {
                 return Err(TaskError::BatchError(errors).into());
             }
         } else {
-            progress_lock.finish_task(&format!(
+            progress_lock.message(&format!(
                 "{} images were decoded successfully ^.^",
                 queue_lock.decoded_tasks().len()
             ));
@@ -121,7 +117,7 @@ impl BatchRunner {
     fn outpaths(&mut self, args: &ImageArgs) -> Result<()> {
         let progress_lock = self.progress.lock().unwrap();
 
-        progress_lock.start_task("Creating output paths");
+        progress_lock.spawn_new(1, "Creating output paths");
         let mut task_lock = self.tasks_queue.lock().unwrap();
 
         let destination_path = match &args.output {
@@ -143,7 +139,7 @@ impl BatchRunner {
         ) {
             Ok(out_paths) => out_paths,
             Err(path_create_error) => {
-                progress_lock.abort_task("Error creating out paths");
+                progress_lock.abort("Error creating out paths");
                 return Err(TaskError::SingleError(path_create_error).into());
             }
         };
@@ -168,7 +164,7 @@ impl BatchRunner {
             task_lock.set_task_out_path(ids[index], path);
         }
 
-        progress_lock.finish_task("Paths created successfully.");
+        progress_lock.message("Paths created successfully.");
 
         Ok(())
     }
@@ -187,9 +183,11 @@ impl BatchRunner {
         };
 
         {
-            let mut progress = progress.lock().unwrap();
-            progress.sub_task_count(task_ids.len());
-            progress.start_task(&format!("Processing {} images", task_ids.len()));
+            let progress = progress.lock().unwrap();
+            progress.spawn_new(
+                task_ids.len(),
+                &format!("Processing {} images", task_ids.len()),
+            );
         }
 
         task_ids.par_iter().for_each(|task_id| {
@@ -225,8 +223,8 @@ impl BatchRunner {
                 }
             };
 
-            if let Ok(mut progress_lock) = progress.try_lock() {
-                progress_lock.start_sub_task(
+            if let Ok(progress_lock) = progress.try_lock() {
+                progress_lock.start_task(
                     &command_msg(command, file_path.to_string_lossy().to_string().as_ref())
                         .unwrap(),
                 );
@@ -262,9 +260,8 @@ impl BatchRunner {
         };
 
         {
-            let mut progress = progress.lock().unwrap();
-            progress.sub_task_count(task_ids.len());
-            progress.start_task(&format!("Saving {} images", task_ids.len()));
+            let progress = progress.lock().unwrap();
+            progress.spawn_new(task_ids.len(), &format!("Saving {} images", task_ids.len()));
         }
 
         task_ids.par_iter().for_each(|task_id| {
@@ -300,8 +297,8 @@ impl BatchRunner {
                 }
             };
 
-            if let Ok(mut progress_lock) = progress.try_lock() {
-                progress_lock.start_sub_task(&format!(
+            if let Ok(progress_lock) = progress.try_lock() {
+                progress_lock.start_task(&format!(
                     "Saving image: {:?}",
                     out_path.file_name().as_slice()
                 ));

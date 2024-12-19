@@ -50,5 +50,5 @@ fn command_msg(command: &ImageCommand, image_name: &str) -> Result<String> {
         ImageCommand::Recolor(_) => "Recoloring",
         ImageCommand::Transparentize(_) => "Removing background",
     };
-    Ok(format!("{message} {image_name}"))
+    Ok(format!("{message}: {image_name}"))
 }
