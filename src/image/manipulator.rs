@@ -107,7 +107,14 @@ pub fn save_image_format(
         }
     }
 
-    match image.save_with_format(&out_path, image_format) {
+    let output_file = match File::create(&out_path) {
+        Ok(file) => file,
+        Err(io_error) => return Err(format!("Error saving image {:?}: {}", out_path, io_error)),
+    };
+
+    let mut buffer = BufWriter::new(output_file);
+
+    match image.write_to(&mut buffer, image_format) {
         Ok(()) => Ok(()),
         Err(save_error) => Err(format!(
             "Error saving image file {:?}: {}",
