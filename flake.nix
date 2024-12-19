@@ -69,6 +69,7 @@
             pkg-config
             git-cliff
             cargo-dist
+            cargo-profiler
           ];
           RUST_SRC_PATH = "${toolchain.rustLibSrc}";
         };
