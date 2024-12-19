@@ -1,5 +1,6 @@
 use super::RunSingle;
 use crate::app::command::{ImageArgs, ImageCommand};
+use crate::app::run::{command_msg, run_command};
 use crate::backend::error::TaskError;
 use crate::backend::paths::prompt_overwrite_single;
 use crate::backend::progress::AppProgress;
@@ -56,55 +57,15 @@ impl RunSingle for ImageArgs {
             output_path.to_path_buf().to_string_lossy()
         ));
 
-        match command {
-            ImageCommand::Convert => match &self.format {
-                Some(format) => progress.finish_task(&format!(
-                    "Coverting image: {} to format {}",
-                    image_path.to_path_buf().to_string_lossy(),
-                    format
-                )),
-                None => progress.finish_task(&format!(
-                    "Converting image: {} as image {}",
-                    image_path.to_path_buf().to_string_lossy(),
-                    output_path.to_path_buf().to_string_lossy()
-                )),
-            },
-            ImageCommand::Resize(args) => {
-                progress.start_task("Resizing image");
+        progress.start_task(
+            &command_msg(command, image_path.file_name().unwrap().to_str().unwrap()).unwrap(),
+        );
 
-                match args.run(&mut image) {
-                    Ok(()) => {
-                        progress.finish_task("Image resized successfully");
-                    }
-                    Err(resize_error) => {
-                        progress.abort_task("Image resize failed with error.");
-                        return Err(resize_error);
-                    }
-                }
-            }
-            ImageCommand::Recolor(args) => {
-                progress.start_task("Recoloring image");
-                match args.run(&mut image) {
-                    Ok(()) => {
-                        progress.finish_task("Image color changed.");
-                    }
-                    Err(recolor_error) => {
-                        progress.abort_task("Image recolor failed with error.");
-                        return Err(recolor_error);
-                    }
-                }
-            }
-            ImageCommand::Transparentize(args) => {
-                progress.start_task("Removing image background");
-                match args.run(&mut image) {
-                    Ok(()) => progress.finish_task("Image background removed."),
-                    Err(removal_error) => {
-                        progress.abort_task("Background removal failed.");
-                        return Err(removal_error);
-                    }
-                }
-            }
+        let image = match run_command(command, &mut image, self.format.as_deref()) {
+            Ok(good_image) => good_image,
+            Err(error) => return Err(error),
         };
+
         progress.start_task(&format!(
             "Saving image: {}",
             output_path.to_path_buf().to_string_lossy()

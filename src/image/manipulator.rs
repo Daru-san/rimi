@@ -1,7 +1,10 @@
 use super::color::ColorInfo;
 use image::imageops::FilterType;
-use image::{self, DynamicImage, ImageFormat, ImageReader};
-use std::io::ErrorKind;
+use image::{load_from_memory, DynamicImage, ImageFormat, ImageReader};
+use rayon::iter::{ParallelBridge, ParallelIterator};
+use std::fs::File;
+use std::io::{BufWriter, Cursor, ErrorKind};
+use std::mem::take;
 use std::path::{Path, PathBuf};
 
 pub fn open_image(image_path: &Path) -> Result<DynamicImage, String> {
@@ -24,17 +27,10 @@ pub fn open_image(image_path: &Path) -> Result<DynamicImage, String> {
     }
 }
 
-pub fn save_image_format(
-    image: &DynamicImage,
-    out: &Path,
-    format: Option<&str>,
-) -> Result<(), String> {
-    let mut out_path = PathBuf::from(out);
-    let image_format;
-
+fn image_format(format: Option<&str>, path: Option<&Path>) -> Result<ImageFormat, String> {
     if let Some(format_extension) = format {
-        image_format = match ImageFormat::from_extension(format_extension) {
-            Some(format) => format,
+        match ImageFormat::from_extension(format_extension) {
+            Some(format) => return Ok(format),
             _ => {
                 return Err(format!(
                     "Couldn't get image format from extension: {}",
@@ -42,19 +38,66 @@ pub fn save_image_format(
                 ))
             }
         };
-        let extension = image_format.extensions_str();
-        if extension.is_empty() {
-            return Err("Image format has no valid file extension".to_string());
-        }
-        out_path.set_extension(extension[0]);
     } else {
-        image_format = match ImageFormat::from_path(&out_path) {
-            Ok(format) => format,
+        match ImageFormat::from_path(path.unwrap()) {
+            Ok(format) => Ok(format),
             Err(_) => return Err("Could not obtain image format from output path".to_string()),
         }
     }
+}
 
-    match image.save_with_format(&out_path, image_format) {
+pub fn convert_image(
+    image: &mut DynamicImage,
+    format: Option<&str>,
+) -> Result<DynamicImage, String> {
+    let image_format = image_format(format, None)?;
+
+    // Avif cannot be decoded in memory,
+    // hence we return and leave it to save_image_format()
+    // TODO: Fix Avif decoding
+    if image_format == ImageFormat::Avif {
+        return Ok(take(image));
+    }
+
+    let mut writer = Cursor::new(Vec::new());
+
+    match image.write_to(&mut writer, image_format) {
+        Ok(()) => (),
+        Err(e) => return Err(e.to_string()),
+    };
+
+    let result = load_from_memory(&writer.into_inner());
+
+    match result {
+        Ok(mut image) => Ok(take(&mut image)),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+pub fn save_image_format(
+    image: &DynamicImage,
+    out: &Path,
+    format: Option<&str>,
+) -> Result<(), String> {
+    let mut out_path = PathBuf::from(out);
+    let image_format = image_format(format, Some(out))?;
+
+    let extension = image_format.extensions_str();
+
+    if extension.is_empty() {
+        return Err("Image format has no valid file extension".to_string());
+    }
+
+    out_path.set_extension(extension[0]);
+
+    let output_file = match File::create(&out_path) {
+        Ok(file) => file,
+        Err(io_error) => return Err(format!("Error saving image {:?}: {}", out_path, io_error)),
+    };
+
+    let mut buffer = BufWriter::new(output_file);
+
+    match image.write_to(&mut buffer, image_format) {
         Ok(()) => Ok(()),
         Err(save_error) => Err(format!(
             "Error saving image file {:?}: {}",
@@ -113,31 +156,31 @@ pub fn remove_background(image: &mut DynamicImage) {
     match color_info.bit_depth {
         B8 => {
             let mut image8bit = image.to_rgba8();
-            for p in image8bit.pixels_mut() {
-                if p[0] == 255 && p[1] == 255 && p[2] == 255 {
-                    p[3] = 0;
+            image8bit.pixels_mut().par_bridge().for_each(|pixel| {
+                if pixel[0] == 255 && pixel[1] == 255 && pixel[2] == 255 {
+                    pixel[3] = 0;
                 }
-            }
+            });
             *image = DynamicImage::ImageRgba8(image8bit);
         }
 
         B16 => {
             let mut image16bit = image.to_rgba16();
-            for p in image16bit.pixels_mut() {
-                if p[0] == 255 && p[1] == 255 && p[2] == 255 {
-                    p[3] = 0;
+            image16bit.pixels_mut().par_bridge().for_each(|pixel| {
+                if pixel[0] == 255 && pixel[1] == 255 && pixel[2] == 255 {
+                    pixel[3] = 0;
                 }
-            }
+            });
             *image = DynamicImage::ImageRgba16(image16bit);
         }
 
         B32 => {
             let mut image32bit = image.to_rgba32f();
-            for p in image32bit.pixels_mut() {
-                if p[0] == 255.0 && p[1] == 255.0 && p[2] == 255.0 {
-                    p[3] = 0.0;
+            image32bit.pixels_mut().par_bridge().for_each(|pixel| {
+                if pixel[0] == 255.0 && pixel[1] == 255.0 && pixel[2] == 255.0 {
+                    pixel[3] = 0.0;
                 }
-            }
+            });
             *image = DynamicImage::ImageRgba32F(image32bit);
         }
     }

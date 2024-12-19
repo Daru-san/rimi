@@ -228,38 +228,8 @@ impl BatchProgress {
         self.subtask_errors = 0;
     }
 
-    pub fn start_sub_task(&self, message: &str) {
+    pub fn start_sub_task(&mut self, message: &str) {
         self.subtask_progress.set_message(message.to_string());
-    }
-
-    pub fn finish_sub_task(&self, message: &str) {
-        if let Some(total_progress) = self.subtask_progress.length() {
-            let message = format!(
-                "[{}/{}] {}",
-                self.subtask_progress.position() + 1,
-                total_progress,
-                message
-            );
-            if self.verbosity == 2 {
-                self.subtask_progress.println(message);
-            } else {
-                self.subtask_progress.set_message(message);
-            }
-        }
         self.subtask_progress.inc(1);
-    }
-
-    pub fn error_sub_task(&mut self, message: &str) {
-        if let Some(total_progress) = self.subtask_progress.length() {
-            self.subtask_progress.println(format!(
-                "[{}/{}] {}",
-                self.subtask_progress.position(),
-                total_progress,
-                message
-            ));
-        }
-        self.subtask_progress.inc(1);
-        self.subtask_errors += 1;
-        self.total_errors += 1;
     }
 }

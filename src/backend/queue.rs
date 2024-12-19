@@ -5,19 +5,20 @@ use image::DynamicImage;
 
 use super::error::TaskError;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Default, PartialEq, Clone)]
 pub enum TaskState {
+    #[default]
     Pending,
     Decoded,
     Processed,
+    Working,
     Failed(TaskError),
-    Complete,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Default, PartialEq, Clone)]
 pub struct ImageTask {
     pub id: u32,
-    pub image: DynamicImage,
+    pub image: Option<DynamicImage>,
     pub image_path: PathBuf,
     pub out_path: PathBuf,
     pub state: TaskState,
@@ -27,7 +28,7 @@ impl ImageTask {
     pub fn new(id: u32, path: &Path) -> Self {
         ImageTask {
             id,
-            image: DynamicImage::default(),
+            image: None,
             image_path: path.to_path_buf(),
             out_path: path.to_path_buf(),
             state: TaskState::Pending,
@@ -36,7 +37,7 @@ impl ImageTask {
 }
 
 pub struct TaskQueue {
-    tasks: Vec<ImageTask>,
+    tasks: Vec<Option<ImageTask>>,
     next_id: u32,
 }
 
@@ -50,60 +51,84 @@ impl TaskQueue {
 
     pub fn new_task(&mut self, path: &Path) -> u32 {
         let task = ImageTask::new(self.next_id, path);
-        self.tasks.push(task);
+        self.tasks.push(Some(task));
         self.next_id += 1;
         self.next_id - 1
     }
 
-    pub fn task_by_id(&self, task_id: u32) -> Option<&ImageTask> {
-        self.tasks.iter().find(|task| task.id == task_id)
+    pub fn task_by_id_mut(&mut self, task_id: u32) -> Option<&mut ImageTask> {
+        self.tasks
+            .iter_mut()
+            .flatten()
+            .find(|task| task.id == task_id)
     }
 
-    pub fn task_by_id_mut(&mut self, task_id: u32) -> Option<&mut ImageTask> {
-        self.tasks.iter_mut().find(|task| task.id == task_id)
+    pub fn working_task(&mut self, task_id: u32) {
+        self.tasks.iter_mut().flatten().try_for_each(|task| {
+            if task.id == task_id {
+                task.state = TaskState::Working;
+                None
+            } else {
+                Some(())
+            }
+        });
     }
 
     pub fn completed_task(&mut self, task_id: u32) {
-        for task in self.tasks.iter_mut() {
-            if task.id == task_id {
-                task.state = TaskState::Complete;
+        self.tasks.iter_mut().try_for_each(|task| {
+            if let Some(found_task) = task {
+                if found_task.id == task_id {
+                    *task = None;
+                    None
+                } else {
+                    Some(())
+                }
+            } else {
+                Some(())
             }
-        }
+        });
     }
 
-    pub fn decoded_task(&mut self, decoded_image: &mut DynamicImage, task_id: u32) {
-        for task in self.tasks.iter_mut() {
+    pub fn decoded_task(&mut self, decoded_image: &mut Option<DynamicImage>, task_id: u32) {
+        self.tasks.iter_mut().flatten().try_for_each(|task| {
             if task.id == task_id {
                 task.state = TaskState::Decoded;
-                task.image = take(decoded_image);
+                task.image = decoded_image.take();
+                None
+            } else {
+                Some(())
             }
-        }
+        });
     }
 
-    pub fn fail_task(&mut self, task_id: u32, task_error: String) {
-        for task in self.tasks.iter_mut() {
+    pub fn fail_task(&mut self, task_id: u32, task_error: &str) {
+        self.tasks.iter_mut().flatten().try_for_each(|task| {
             if task.id == task_id {
                 task.state = TaskState::Failed(TaskError::SingleError(task_error.to_string()));
+                None
+            } else {
+                Some(())
             }
-        }
+        });
     }
 
-    pub fn processed_task(&mut self, processed_image: &mut DynamicImage, task_id: u32) {
-        for task in self.tasks.iter_mut() {
+    pub fn processed_task(&mut self, processed_image: &mut Option<DynamicImage>, task_id: u32) {
+        self.tasks.iter_mut().flatten().try_for_each(|task| {
             if task.id == task_id {
                 task.state = TaskState::Processed;
-                task.image = take(processed_image);
+                task.image = processed_image.take();
+                None
+            } else {
+                Some(())
             }
-        }
+        });
     }
 
     pub fn has_failures(&self) -> bool {
-        for task in &self.tasks {
-            if let TaskState::Failed(_) = task.state {
-                return true;
-            }
-        }
-        false
+        self.tasks
+            .iter()
+            .flatten()
+            .any(|task| matches!(task.state, TaskState::Failed(_)))
     }
 
     pub fn count_failures(&self) -> usize {
@@ -111,40 +136,46 @@ impl TaskQueue {
     }
 
     pub fn failed_tasks(&self) -> Vec<&ImageTask> {
-        let mut tasks = Vec::new();
-        for task in &self.tasks {
-            if let TaskState::Failed(_) = task.state {
-                tasks.push(task);
-            }
-        }
-        tasks
+        self.tasks
+            .iter()
+            .flatten()
+            .filter(|task| matches!(task.state, TaskState::Failed(_)))
+            .collect()
+    }
+
+    pub fn processed_tasks(&self) -> Vec<&ImageTask> {
+        self.tasks
+            .iter()
+            .flatten()
+            .filter(|task| matches!(task.state, TaskState::Processed))
+            .collect()
     }
 
     pub fn decoded_tasks(&self) -> Vec<&ImageTask> {
-        let mut tasks = Vec::new();
-        for task in &self.tasks {
-            if let TaskState::Decoded = task.state {
-                tasks.push(task);
-            }
-        }
-        tasks
+        self.tasks
+            .iter()
+            .flatten()
+            .filter(|task| matches!(task.state, TaskState::Decoded))
+            .collect()
     }
 
     pub fn decoded_task_ids(&self) -> Vec<u32> {
-        let mut ids = Vec::new();
-        for task in &self.tasks {
-            if let TaskState::Decoded = task.state {
-                ids.push(task.id);
-            }
-        }
-        ids
+        self.tasks
+            .iter()
+            .flatten()
+            .filter(|task| matches!(task.state, TaskState::Decoded))
+            .map(|task| task.id)
+            .collect()
     }
 
-    pub fn set_task_out_path(&mut self, task_id: u32, path: &Path) {
-        for task in self.tasks.iter_mut() {
+    pub fn set_task_out_path(&mut self, task_id: u32, path: &mut PathBuf) {
+        self.tasks.iter_mut().flatten().try_for_each(|task| {
             if task.id == task_id {
-                task.out_path = path.to_path_buf();
+                task.out_path = take(path);
+                None
+            } else {
+                Some(())
             }
-        }
+        });
     }
 }
