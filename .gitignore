@@ -1,3 +1,16 @@
+# Rust build
 target/
+
+# Nix build
 result
+
+# Direnv
 .direnv/
+
+# Image test directory
+out/
+
+# Profilling
+perf*
+
+callgrind.out
