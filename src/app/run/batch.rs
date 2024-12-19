@@ -17,15 +17,15 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 const TASK_COUNT: usize = 3;
 
 struct BatchRunner {
-    tasks_queue: Arc<Mutex<TaskQueue>>,
-    progress: Arc<Mutex<BatchProgress>>,
+    tasks_queue: Mutex<TaskQueue>,
+    progress: Mutex<BatchProgress>,
 }
 
 impl BatchRunner {
     fn init(verbosity: u32) -> Self {
         Self {
-            tasks_queue: Arc::new(Mutex::new(TaskQueue::new())),
-            progress: Arc::new(Mutex::new(BatchProgress::init(verbosity))),
+            tasks_queue: Mutex::new(TaskQueue::new()),
+            progress: Mutex::new(BatchProgress::init(verbosity)),
         }
     }
 
@@ -194,7 +194,6 @@ impl BatchRunner {
         };
 
         let tasks_queue = &self.tasks_queue;
-
         let progress = &self.progress;
 
         task_ids.par_iter().for_each(|task_id| {
@@ -258,8 +257,8 @@ impl BatchRunner {
                 .collect()
         };
 
-        let tasks_queue = Arc::clone(&self.tasks_queue);
-        let progress = Arc::clone(&self.progress);
+        let tasks_queue = &self.tasks_queue;
+        let progress = &self.progress;
 
         task_ids.par_iter().for_each(|task_id| {
             let (task_id, processed_image, out_path) = {
