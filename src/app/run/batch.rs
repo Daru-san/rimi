@@ -1,6 +1,6 @@
 use std::mem::take;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use crate::app::command::{ImageArgs, ImageCommand};
 use crate::backend::error::TaskError;
@@ -10,9 +10,10 @@ use crate::backend::queue::{TaskQueue, TaskState};
 use crate::image::manipulator::{open_image, save_image_format};
 
 use super::{command_msg, run_command, RunBatch};
+use anyhow::Result;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-const TASK_COUNT: usize = 3;
+const TASK_COUNT: usize = 4;
 
 struct BatchRunner {
     tasks_queue: Mutex<TaskQueue>,
@@ -45,7 +46,6 @@ impl BatchRunner {
 
     fn decode_images(&mut self, args: &ImageArgs) -> Result<()> {
         let images = args.images.len() - 1;
-
         {
             let mut progress_lock = self.progress.lock().unwrap();
 
@@ -59,14 +59,12 @@ impl BatchRunner {
         let progress = &self.progress;
 
         args.images.par_iter().for_each(|image| {
-            let progress_lock = progress.lock().unwrap();
-
-            progress_lock.start_sub_task(&format!(
-                "Decoding image: {:?}",
-                image.file_name().as_slice()
-            ));
-
-            drop(progress_lock);
+            if let Ok(mut progress_lock) = progress.try_lock() {
+                progress_lock.start_sub_task(&format!(
+                    "Decoding image: {:?}",
+                    image.file_name().as_slice()
+                ));
+            }
 
             let current_image = open_image(image);
 
@@ -74,19 +72,13 @@ impl BatchRunner {
 
             let task_id = queue_lock.new_task(image);
 
-            let mut progress_lock = progress.lock().unwrap();
-
             match current_image {
-                Ok(good_image) => {
-                    queue_lock.decoded_task(&mut Some(good_image), task_id);
-                    progress_lock.finish_sub_task(&format!(
-                        "Image decoded: {:?}",
-                        image.file_name().as_slice()
-                    ));
-                }
+                Ok(good_image) => queue_lock.decoded_task(&mut Some(good_image), task_id),
                 Err(decode_error) => {
                     queue_lock.fail_task(task_id, &decode_error);
-                    progress_lock.error_sub_task(&format!("{:?}", decode_error));
+                    if let Ok(progress) = progress.try_lock() {
+                        progress.send_trace(&format!("Error: {}", decode_error));
+                    }
                 }
             }
         });
@@ -182,8 +174,11 @@ impl BatchRunner {
     }
 
     fn process_images(&mut self, command: &ImageCommand, format: Option<&str>) -> Result<()> {
+        let tasks_queue = &self.tasks_queue;
+        let progress = &self.progress;
+
         let task_ids: Vec<u32> = {
-            let tasks_queue = self.tasks_queue.lock().unwrap();
+            let tasks_queue = tasks_queue.lock().unwrap();
             tasks_queue
                 .decoded_tasks()
                 .par_iter()
@@ -191,14 +186,22 @@ impl BatchRunner {
                 .collect()
         };
 
-        let tasks_queue = &self.tasks_queue;
-        let progress = &self.progress;
+        {
+            let mut progress = progress.lock().unwrap();
+            progress.sub_task_count(task_ids.len());
+            progress.start_task(&format!("Processing {} images", task_ids.len()));
+        }
 
         task_ids.par_iter().for_each(|task_id| {
-            let (task_id, mut processed_image, out_path) = {
-                let mut task_lock = tasks_queue.lock().unwrap();
+            let (task_id, mut processed_image, file_path) = {
+                let mut task_guard = match tasks_queue.lock() {
+                    Ok(lock) => lock,
+                    Err(error) => {
+                        panic!("A serious error occured! {}", error);
+                    }
+                };
 
-                let (id, image, path) = match task_lock.task_by_id_mut(*task_id) {
+                let (id, image, path) = match task_guard.task_by_id_mut(*task_id) {
                     Some(task) => match task.state {
                         TaskState::Decoded => {
                             (task.id, task.image.take(), take(&mut task.image_path))
@@ -207,47 +210,50 @@ impl BatchRunner {
                         _ => return,
                     },
                     _ => {
-                        task_lock.fail_task(*task_id, &TaskError::NoSuchTask.to_string());
+                        task_guard.fail_task(*task_id, &TaskError::NoSuchTask.to_string());
                         return;
                     }
                 };
 
-                task_lock.working_task(id);
+                task_guard.working_task(id);
 
                 if let Some(image) = image {
                     (id, image, path)
                 } else {
-                    task_lock.fail_task(id, &TaskError::NoSuchTask.to_string());
+                    task_guard.fail_task(id, &TaskError::NoSuchTask.to_string());
                     return;
                 }
             };
 
-            {
-                let progress_lock = progress.lock().unwrap();
-                progress_lock.start_task(
-                    &command_msg(command, out_path.to_string_lossy().to_string().as_ref()).unwrap(),
+            if let Ok(mut progress_lock) = progress.try_lock() {
+                progress_lock.start_sub_task(
+                    &command_msg(command, file_path.to_string_lossy().to_string().as_ref())
+                        .unwrap(),
                 );
             }
 
             let result = run_command(command, &mut processed_image, format);
 
-            let mut task_lock = tasks_queue.lock().unwrap();
-
-            let mut progress_lock = progress.lock().unwrap();
+            let mut task_guard = tasks_queue.lock().unwrap();
 
             match result {
-                Ok(image) => task_lock.processed_task(&mut Some(image), task_id),
+                Ok(image) => task_guard.processed_task(&mut Some(image), task_id),
                 Err(error) => {
-                    progress_lock.error_sub_task(&format!("Error: {}", error));
-                    task_lock.fail_task(task_id, &error.to_string());
+                    task_guard.fail_task(task_id, &error.to_string());
+                    if let Ok(progress) = progress.try_lock() {
+                        progress.send_trace(&format!("Error: {}", error));
+                    }
                 }
             };
         });
         Ok(())
     }
     fn save_images(&mut self, args: &ImageArgs) -> Result<()> {
+        let tasks_queue = &self.tasks_queue;
+        let progress = &self.progress;
+
         let task_ids: Vec<u32> = {
-            let tasks_queue = self.tasks_queue.lock().unwrap();
+            let tasks_queue = tasks_queue.lock().unwrap();
             tasks_queue
                 .processed_tasks()
                 .par_iter()
@@ -255,14 +261,22 @@ impl BatchRunner {
                 .collect()
         };
 
-        let tasks_queue = &self.tasks_queue;
-        let progress = &self.progress;
+        {
+            let mut progress = progress.lock().unwrap();
+            progress.sub_task_count(task_ids.len());
+            progress.start_task(&format!("Saving {} images", task_ids.len()));
+        }
 
         task_ids.par_iter().for_each(|task_id| {
             let (task_id, processed_image, out_path) = {
-                let mut task_lock = tasks_queue.lock().unwrap();
+                let mut task_guard = match tasks_queue.lock() {
+                    Ok(lock) => lock,
+                    Err(error) => {
+                        panic!("A serious error occured! {}", error);
+                    }
+                };
 
-                let (id, image, path) = match task_lock.task_by_id_mut(*task_id) {
+                let (id, image, path) = match task_guard.task_by_id_mut(*task_id) {
                     Some(task) => match task.state {
                         TaskState::Processed => {
                             (task.id, task.image.take(), take(&mut task.out_path))
@@ -271,24 +285,23 @@ impl BatchRunner {
                         _ => return,
                     },
                     _ => {
-                        task_lock.fail_task(*task_id, &TaskError::NoSuchTask.to_string());
+                        task_guard.fail_task(*task_id, &TaskError::NoSuchTask.to_string());
                         return;
                     }
                 };
 
-                task_lock.working_task(id);
+                task_guard.working_task(id);
 
                 if let Some(image) = image {
                     (id, image, path)
                 } else {
-                    task_lock.fail_task(id, &TaskError::NoSuchTask.to_string());
+                    task_guard.fail_task(id, &TaskError::NoSuchTask.to_string());
                     return;
                 }
             };
 
-            {
-                let progress_lock = progress.lock().unwrap();
-                progress_lock.start_task(&format!(
+            if let Ok(mut progress_lock) = progress.try_lock() {
+                progress_lock.start_sub_task(&format!(
                     "Saving image: {:?}",
                     out_path.file_name().as_slice()
                 ));
@@ -297,25 +310,15 @@ impl BatchRunner {
             let image_result =
                 save_image_format(&processed_image, &out_path, args.format.as_deref());
 
-            let mut progress_lock = progress.lock().unwrap();
-            let mut task_lock = tasks_queue.lock().unwrap();
+            let mut task_guard = tasks_queue.lock().unwrap();
 
             match image_result {
-                Ok(()) => {
-                    task_lock.completed_task(task_id);
-                    progress_lock
-                        .finish_sub_task(&format!("Image saved successfully: {:?}", out_path));
-                }
+                Ok(()) => task_guard.completed_task(task_id),
                 Err(save_error) => {
-                    task_lock.fail_task(task_id, &save_error);
-                    progress_lock.error_sub_task(&format!(
-                        "Image processing failed with error: {:?}",
-                        out_path
-                    ));
-                    progress_lock.send_trace(&format!(
-                        "Image {:?} failed to process due to error: {}",
-                        out_path, save_error
-                    ));
+                    task_guard.fail_task(task_id, &save_error);
+                    if let Ok(progress) = progress.try_lock() {
+                        progress.send_trace(&format!("Error: {}", save_error));
+                    }
                 }
             }
         });
