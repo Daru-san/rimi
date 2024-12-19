@@ -64,64 +64,52 @@ impl TaskQueue {
     }
 
     pub fn working_task(&mut self, task_id: u32) {
-        self.tasks.iter_mut().flatten().try_for_each(|task| {
+        for task in self.tasks.iter_mut().flatten() {
             if task.id == task_id {
                 task.state = TaskState::Working;
-                None
-            } else {
-                Some(())
+                break;
             }
-        });
+        }
     }
 
     pub fn completed_task(&mut self, task_id: u32) {
-        self.tasks.iter_mut().try_for_each(|task| {
-            if let Some(found_task) = task {
-                if found_task.id == task_id {
+        for task in self.tasks.iter_mut() {
+            if let Some(this_task) = task {
+                if this_task.id == task_id {
                     *task = None;
-                    None
-                } else {
-                    Some(())
+                    break;
                 }
-            } else {
-                Some(())
             }
-        });
+        }
     }
 
     pub fn decoded_task(&mut self, decoded_image: &mut Option<DynamicImage>, task_id: u32) {
-        self.tasks.iter_mut().flatten().try_for_each(|task| {
+        for task in self.tasks.iter_mut().flatten() {
             if task.id == task_id {
                 task.state = TaskState::Decoded;
                 task.image = decoded_image.take();
-                None
-            } else {
-                Some(())
+                break;
             }
-        });
+        }
     }
 
     pub fn fail_task(&mut self, task_id: u32, task_error: &str) {
-        self.tasks.iter_mut().flatten().try_for_each(|task| {
+        for task in self.tasks.iter_mut().flatten() {
             if task.id == task_id {
                 task.state = TaskState::Failed(TaskError::SingleError(task_error.to_string()));
-                None
-            } else {
-                Some(())
+                break;
             }
-        });
+        }
     }
 
     pub fn processed_task(&mut self, processed_image: &mut Option<DynamicImage>, task_id: u32) {
-        self.tasks.iter_mut().flatten().try_for_each(|task| {
+        for task in self.tasks.iter_mut().flatten() {
             if task.id == task_id {
                 task.state = TaskState::Processed;
                 task.image = processed_image.take();
-                None
-            } else {
-                Some(())
+                break;
             }
-        });
+        }
     }
 
     pub fn has_failures(&self) -> bool {
@@ -169,13 +157,11 @@ impl TaskQueue {
     }
 
     pub fn set_task_out_path(&mut self, task_id: u32, path: &mut PathBuf) {
-        self.tasks.iter_mut().flatten().try_for_each(|task| {
+        for task in self.tasks.iter_mut().flatten() {
             if task.id == task_id {
                 task.out_path = take(path);
-                None
-            } else {
-                Some(())
+                break;
             }
-        });
+        }
     }
 }
