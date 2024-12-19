@@ -2,7 +2,8 @@ use super::color::ColorInfo;
 use image::imageops::FilterType;
 use image::{load_from_memory, DynamicImage, ImageFormat, ImageReader};
 use rayon::iter::{ParallelBridge, ParallelIterator};
-use std::io::{Cursor, ErrorKind};
+use std::fs::File;
+use std::io::{BufWriter, Cursor, ErrorKind};
 use std::mem::take;
 use std::path::{Path, PathBuf};
 
@@ -26,12 +27,6 @@ pub fn open_image(image_path: &Path) -> Result<DynamicImage, String> {
     }
 }
 
-pub fn convert_image(
-    image: &mut DynamicImage,
-    format: Option<&str>,
-) -> Result<DynamicImage, String> {
-    let mut out_path = PathBuf::from(".");
-    let image_format;
 
     if let Some(format_extension) = format {
         image_format = match ImageFormat::from_extension(format_extension) {
@@ -54,6 +49,11 @@ pub fn convert_image(
             Err(_) => return Err("Could not obtain image format from output path".to_string()),
         }
     }
+pub fn convert_image(
+    image: &mut DynamicImage,
+    format: Option<&str>,
+) -> Result<DynamicImage, String> {
+    let image_format = image_format(format, None)?;
 
     // Avif cannot be decoded in memory,
     // hence we return and leave it to save_image_format()
@@ -62,14 +62,15 @@ pub fn convert_image(
         return Ok(take(image));
     }
 
-    let mut cursor = Cursor::new(Vec::new());
+    let mut writer = Cursor::new(Vec::new());
 
-    match image.write_to(&mut cursor, image_format) {
+    match image.write_to(&mut writer, image_format) {
         Ok(()) => (),
         Err(e) => return Err(e.to_string()),
     };
 
-    let result = load_from_memory(&cursor.into_inner());
+    let result = load_from_memory(&writer.into_inner());
+
     match result {
         Ok(mut image) => Ok(take(&mut image)),
         Err(e) => Err(e.to_string()),
