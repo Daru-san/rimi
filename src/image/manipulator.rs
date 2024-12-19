@@ -27,10 +27,10 @@ pub fn open_image(image_path: &Path) -> Result<DynamicImage, String> {
     }
 }
 
-
+fn image_format(format: Option<&str>, path: Option<&Path>) -> Result<ImageFormat, String> {
     if let Some(format_extension) = format {
-        image_format = match ImageFormat::from_extension(format_extension) {
-            Some(format) => format,
+        match ImageFormat::from_extension(format_extension) {
+            Some(format) => return Ok(format),
             _ => {
                 return Err(format!(
                     "Couldn't get image format from extension: {}",
@@ -38,17 +38,14 @@ pub fn open_image(image_path: &Path) -> Result<DynamicImage, String> {
                 ))
             }
         };
-        let extension = image_format.extensions_str();
-        if extension.is_empty() {
-            return Err("Image format has no valid file extension".to_string());
-        }
-        out_path.set_extension(extension[0]);
     } else {
-        image_format = match ImageFormat::from_path(&out_path) {
-            Ok(format) => format,
+        match ImageFormat::from_path(path.unwrap()) {
+            Ok(format) => Ok(format),
             Err(_) => return Err("Could not obtain image format from output path".to_string()),
         }
     }
+}
+
 pub fn convert_image(
     image: &mut DynamicImage,
     format: Option<&str>,
@@ -83,29 +80,15 @@ pub fn save_image_format(
     format: Option<&str>,
 ) -> Result<(), String> {
     let mut out_path = PathBuf::from(out);
-    let image_format;
+    let image_format = image_format(format, Some(out))?;
 
-    if let Some(format_extension) = format {
-        image_format = match ImageFormat::from_extension(format_extension) {
-            Some(format) => format,
-            _ => {
-                return Err(format!(
-                    "Couldn't get image format from extension: {}",
-                    format_extension
-                ))
-            }
-        };
-        let extension = image_format.extensions_str();
-        if extension.is_empty() {
-            return Err("Image format has no valid file extension".to_string());
-        }
-        out_path.set_extension(extension[0]);
-    } else {
-        image_format = match ImageFormat::from_path(&out_path) {
-            Ok(format) => format,
-            Err(_) => return Err("Could not obtain image format from output path".to_string()),
-        }
+    let extension = image_format.extensions_str();
+
+    if extension.is_empty() {
+        return Err("Image format has no valid file extension".to_string());
     }
+
+    out_path.set_extension(extension[0]);
 
     let output_file = match File::create(&out_path) {
         Ok(file) => file,
