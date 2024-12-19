@@ -8,10 +8,5 @@ pub trait RunSingle {
 }
 
 pub trait RunBatch {
-    fn run_batch(
-        &self,
-        command: &ImageCommand,
-        verbosity: u32,
-        task_count: usize,
-    ) -> anyhow::Result<()>;
+    fn run_batch(&self, command: &ImageCommand, verbosity: u32) -> anyhow::Result<()>;
 }

@@ -63,10 +63,6 @@ pub struct ImageArgs {
     /// Output image(s) format
     #[clap(short, long, global(true))]
     pub format: Option<String>,
-
-    /// Tasks to run in parallel, spawns a thread for each Tasks
-    #[clap(short, long, hide(true), default_value("3"))]
-    pub parallel_tasks: usize,
 }
 
 #[derive(Parser)]
@@ -129,11 +125,7 @@ impl CommandArgs {
                 Some(command) => match self.image_args.images.len() {
                     0 => Err(AppError::NoImages.into()),
                     1 => Ok(self.image_args.run_single(command, verbosity)?),
-                    _ => Ok(self.image_args.run_batch(
-                        command,
-                        verbosity,
-                        self.image_args.parallel_tasks,
-                    )?),
+                    _ => Ok(self.image_args.run_batch(command, verbosity)?),
                 },
                 None => Ok(clap::Command::print_help(&mut super::Args::command())?),
             },
