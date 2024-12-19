@@ -7,11 +7,9 @@ use crate::backend::error::TaskError;
 use crate::backend::paths::{create_paths, paths_exist, prompt_overwrite};
 use crate::backend::progress::{AppProgress, BatchProgress};
 use crate::backend::queue::{TaskQueue, TaskState};
-use crate::image::manipulator::{convert_image, open_image, save_image_format};
+use crate::image::manipulator::{open_image, save_image_format};
 
-use super::RunBatch;
-use anyhow::{Error, Result};
-use image::DynamicImage;
+use super::{command_msg, run_command, RunBatch};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 const TASK_COUNT: usize = 3;
@@ -323,41 +321,6 @@ impl BatchRunner {
         });
         Ok(())
     }
-}
-
-fn run_command(
-    command: &ImageCommand,
-    image: &mut DynamicImage,
-    format: Option<&str>,
-) -> Result<DynamicImage> {
-    match command {
-        ImageCommand::Convert => match convert_image(image, format) {
-            Ok(mut image) => Ok(take(&mut image)),
-            Err(convert_error) => Err(Error::msg(convert_error)),
-        },
-        ImageCommand::Resize(args) => match args.run(image) {
-            Ok(()) => Ok(take(image)),
-            Err(resize_error) => Err(resize_error),
-        },
-        ImageCommand::Recolor(args) => match args.run(image) {
-            Ok(()) => Ok(take(image)),
-            Err(recolor_error) => Err(recolor_error),
-        },
-        ImageCommand::Transparentize(args) => match args.run(image) {
-            Ok(()) => Ok(take(image)),
-            Err(removal_error) => Err(removal_error),
-        },
-    }
-}
-
-fn command_msg(command: &ImageCommand, image_name: &str) -> Result<String> {
-    let message = match command {
-        ImageCommand::Convert => "Converting ",
-        ImageCommand::Resize(_) => "Resizing ",
-        ImageCommand::Recolor(_) => "Recoloring ",
-        ImageCommand::Transparentize(_) => "Removing background ",
-    };
-    Ok(format!("{message} {image_name}"))
 }
 
 impl RunBatch for ImageArgs {
