@@ -30,18 +30,16 @@ pub fn open_image(image_path: &Path) -> Result<DynamicImage, String> {
 fn image_format(format: Option<&str>, path: Option<&Path>) -> Result<ImageFormat, String> {
     if let Some(format_extension) = format {
         match ImageFormat::from_extension(format_extension) {
-            Some(format) => return Ok(format),
-            _ => {
-                return Err(format!(
-                    "Couldn't get image format from extension: {}",
-                    format_extension
-                ))
-            }
-        };
+            Some(format) => Ok(format),
+            _ => Err(format!(
+                "Couldn't get image format from extension: {}",
+                format_extension
+            )),
+        }
     } else {
         match ImageFormat::from_path(path.unwrap()) {
             Ok(format) => Ok(format),
-            Err(_) => return Err("Could not obtain image format from output path".to_string()),
+            Err(_) => Err("Could not obtain image format from output path".to_string()),
         }
     }
 }
