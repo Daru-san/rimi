@@ -21,3 +21,7 @@ thiserror = "2.0.6"
 [profile.dist]
 inherits = "release"
 lto = "thin"
+
+[profile.test-release]
+inherits = "release"
+debug = true
