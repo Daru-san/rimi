@@ -7,9 +7,6 @@ pub enum TaskError {
 
     #[error("Multiple operations failed: {0:?}")]
     BatchError(Vec<String>),
-
-    #[error("No such task")]
-    NoSuchTask,
 }
 
 #[derive(Error, Debug)]
