@@ -18,7 +18,7 @@ pub fn open_image(image_path: &Path) -> Result<DynamicImage, String> {
         Err(metadata_error) => return Err(metadata_error.to_string()),
     };
 
-    let mut buffer = Vec::with_capacity(len as usize);
+    let mut buffer = Vec::with_capacity(len as usize + 1);
 
     match file.read_to_end(&mut buffer) {
         Ok(_) => (),
