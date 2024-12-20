@@ -172,9 +172,8 @@ impl BatchRunner {
             );
         }
 
-        tasks_queue.par_iter_mut().for_each(|task| {
-            let failed = false;
-            if let Some(task) = task {
+        tasks_queue.par_iter_mut().for_each(|this_task| {
+            if let Some(task) = this_task {
                 if let Ok(progress_bar) = progress.try_lock() {
                     if let Some(path) = task.image_path.file_name() {
                         progress_bar.start_task(
@@ -194,14 +193,12 @@ impl BatchRunner {
                 match result {
                     Ok(new_image) => task.image = new_image,
                     Err(error) => {
+                        *this_task = None;
                         if let Ok(progress) = progress.try_lock() {
                             progress.send_trace(&format!("Error: {}", error));
                         }
                     }
                 };
-            }
-            if failed {
-                *task = None;
             }
         });
         tasks_queue.retain(|task| task.is_some());
@@ -221,8 +218,8 @@ impl BatchRunner {
             );
         }
 
-        tasks_queue.par_iter_mut().for_each(|task| {
-            if let Some(task) = task {
+        tasks_queue.par_iter_mut().for_each(|this_task| {
+            if let Some(task) = this_task {
                 if let Ok(progress_bar) = progress.try_lock() {
                     progress_bar.start_task(&format!(
                         "Saving image: {:?}",
@@ -241,7 +238,7 @@ impl BatchRunner {
                     }
                 };
             }
-            *task = None;
+            *this_task = None;
         });
         tasks_queue.par_drain(..);
         Ok(())
