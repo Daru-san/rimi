@@ -3,12 +3,31 @@ use image::imageops::FilterType;
 use image::{load_from_memory, DynamicImage, ImageFormat, ImageReader};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use std::fs::File;
-use std::io::{BufWriter, Cursor, ErrorKind};
+use std::io::{BufWriter, Cursor, Read};
 use std::mem::take;
 use std::path::{Path, PathBuf};
 
 pub fn open_image(image_path: &Path) -> Result<DynamicImage, String> {
-    match ImageReader::open(image_path) {
+    let mut file = match File::open(image_path) {
+        Ok(file) => file,
+        Err(file_error) => return Err(file_error.to_string()),
+    };
+
+    let len = match file.metadata() {
+        Ok(data) => data.len(),
+        Err(metadata_error) => return Err(metadata_error.to_string()),
+    };
+
+    let mut buffer = Vec::with_capacity(len as usize);
+
+    match file.read_to_end(&mut buffer) {
+        Ok(_) => (),
+        Err(read_error) => return Err(read_error.to_string()),
+    }
+
+    let reader = Cursor::new(buffer);
+
+    match ImageReader::new(reader).with_guessed_format() {
         Ok(reader) => match reader.decode() {
             Ok(image) => Ok(image),
             Err(decode_error) => Err(format!(
@@ -16,14 +35,10 @@ pub fn open_image(image_path: &Path) -> Result<DynamicImage, String> {
                 image_path, decode_error
             )),
         },
-        Err(file_error) => match file_error.kind() {
-            ErrorKind::NotFound => Err(format!("File not found {:?}", image_path)),
-            ErrorKind::PermissionDenied => Err(format!("Permission denied: {:?}", image_path)),
-            _ => Err(format!(
-                "Error opening image {:?}: {}",
-                image_path, file_error
-            )),
-        },
+        Err(decode_error) => Err(format!(
+            "Error decoding image {:?}: {}",
+            image_path, decode_error
+        )),
     }
 }
 
@@ -57,7 +72,7 @@ pub fn convert_image(
         return Ok(take(image));
     }
 
-    let mut writer = Cursor::new(Vec::new());
+    let mut writer = Cursor::new(Vec::with_capacity(image.as_bytes().len() + 1));
 
     match image.write_to(&mut writer, image_format) {
         Ok(()) => (),
@@ -93,7 +108,7 @@ pub fn save_image_format(
         Err(io_error) => return Err(format!("Error saving image {:?}: {}", out_path, io_error)),
     };
 
-    let mut buffer = BufWriter::new(output_file);
+    let mut buffer = BufWriter::with_capacity(image.as_bytes().len() + 1, output_file);
 
     match image.write_to(&mut buffer, image_format) {
         Ok(()) => Ok(()),
