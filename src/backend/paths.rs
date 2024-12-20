@@ -79,32 +79,32 @@ pub fn paths_exist(paths: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
 }
 
 pub fn prompt_overwrite(paths: Vec<PathBuf>) -> Result<(), String> {
-    println!("Existing paths found: ");
+    println!("Existing files found: ");
     for path in paths {
         println!("{}", path.to_string_lossy());
     }
 
     let confirm = Confirm::new()
-        .with_prompt("Overwrite these paths?")
+        .with_prompt("Overwrite these files?")
         .interact();
     match confirm {
         Ok(overwrite) => match overwrite {
             true => Ok(()),
-            false => Err("Not overwriting existing paths".to_string()),
+            false => Err("Not overwriting existing files".to_string()),
         },
         Err(confirm_error) => Err(confirm_error.to_string()),
     }
 }
 
 pub fn prompt_overwrite_single(path: &Path) -> Result<(), String> {
-    println!("Overwrite existing path: {}?", path.to_string_lossy());
+    println!("Overwrite existing file: {}?", path.to_string_lossy());
     let confirm = Confirm::new()
-        .with_prompt("Overwrite these paths?")
+        .with_prompt("Overwrite this file?")
         .interact();
     match confirm {
         Ok(overwrite) => match overwrite {
             true => Ok(()),
-            false => Err("Not overwriting existing paths".to_string()),
+            false => Err("Not overwriting existing file".to_string()),
         },
         Err(confirm_error) => Err(confirm_error.to_string()),
     }
