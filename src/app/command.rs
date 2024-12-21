@@ -48,10 +48,6 @@ pub struct ImageArgs {
     #[clap(short, long, global(true))]
     pub output: Option<PathBuf>,
 
-    /// Abort on error
-    #[clap(short, long)]
-    pub abort_on_error: bool,
-
     /// Overwrite existing images
     #[clap(short('x'), long, global(true))]
     pub overwrite: bool,
@@ -63,10 +59,6 @@ pub struct ImageArgs {
     /// Output image(s) format
     #[clap(short, long, global(true))]
     pub format: Option<String>,
-
-    /// Tasks to run in parallel, spawns a thread for each Tasks
-    #[clap(short, long, hide(true), default_value("3"))]
-    pub parallel_tasks: usize,
 }
 
 #[derive(Parser)]
