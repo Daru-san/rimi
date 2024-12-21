@@ -6,7 +6,7 @@ use std::error::Error;
 
 use command::CommandArgs;
 
-/// Simple image manipulation tool
+/// Fast, simple image manipulation tool
 #[derive(Parser)]
 #[command(version,about,long_about = None)]
 pub struct Args {
