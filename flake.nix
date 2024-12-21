@@ -1,5 +1,5 @@
 {
-  description = "An image converter written in rust";
+  description = "A fast, simple batch image manipulation tool written in rust.";
 
   inputs = {
     utils.url = "github:numtide/flake-utils";
@@ -44,7 +44,7 @@
             cargoLock.lockFile = ./Cargo.lock;
 
             meta = {
-              description = "Simple image manipulation tool.";
+              description = "Fast, simple batch image manipulation tool.";
               homepage = "htpps://github.com/Daru-san/rimi";
               maintainers = [ lib.maintainers.daru-san ];
               license = [ lib.licenses.mit ];
