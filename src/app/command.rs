@@ -41,7 +41,7 @@ pub struct ImageArgs {
     pub image_command: Option<ImageCommand>,
 
     /// Images to be converted
-    #[clap(short, long, value_parser, num_args(1..1000), value_delimiter(' '), global(true))]
+    #[clap(short, long, value_parser, num_args(1..10000), value_delimiter(' '), global(true))]
     pub images: Vec<PathBuf>,
 
     /// Output path, use a directory when batch converting, cannot be used with format
