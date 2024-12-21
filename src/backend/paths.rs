@@ -73,21 +73,15 @@ pub fn create_paths(
     Ok(paths)
 }
 
-pub fn paths_exist(paths: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
-    let mut existing_paths = Vec::new();
-
-    paths.iter().for_each(|path| {
-        if let Ok(path_exists) = path.try_exists() {
-            if path_exists {
-                existing_paths.push(path.to_path_buf());
-            }
-        }
-    });
-
+pub fn paths_exist(paths: &[PathBuf]) -> Result<Vec<&PathBuf>, String> {
+    let existing_paths = paths
+        .iter()
+        .filter(|path| path.try_exists().unwrap_or(false))
+        .collect();
     Ok(existing_paths)
 }
 
-pub fn prompt_overwrite(paths: Vec<PathBuf>) -> Result<(), String> {
+pub fn prompt_overwrite(paths: Vec<&PathBuf>) -> Result<(), String> {
     println!("Existing files found: ");
     for path in paths {
         println!("{}", path.to_string_lossy());
