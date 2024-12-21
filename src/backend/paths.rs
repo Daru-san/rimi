@@ -26,8 +26,17 @@ pub fn create_paths(
     }
 
     let image_format = match image_format {
-        Some(format) => Some(ImageFormat::from_extension(format).unwrap()),
-        None => name_expr.map(|expression| ImageFormat::from_path(expression).unwrap()),
+        Some(format) => match ImageFormat::from_extension(format) {
+            Some(image_format) => Some(image_format),
+            None => return Err(format!("Image format provided is not valid: {}", format)),
+        },
+        None => match name_expr {
+            Some(expression) => match ImageFormat::from_path(expression) {
+                Ok(image_format) => Some(image_format),
+                Err(error) => return Err(error.to_string()),
+            },
+            None => None,
+        },
     };
 
     for (index, file) in files.iter().enumerate() {
