@@ -164,12 +164,10 @@ impl BatchRunner {
         let progress = &self.progress_bar;
 
         let mut tasks_queue = tasks_queue.lock().unwrap();
-        {
-            let progress = progress.lock().unwrap();
-            progress.spawn_new(
-                tasks_queue.len(),
-                &format!("Processing {} images", tasks_queue.len()),
-            );
+        let tasks = tasks_queue.len();
+
+        if let Ok(progress_bar) = progress.lock() {
+            progress_bar.spawn_new(tasks, &format!("Processing {} images", tasks));
         }
 
         tasks_queue.par_iter_mut().for_each(|this_task| {
@@ -210,12 +208,10 @@ impl BatchRunner {
         let progress = &self.progress_bar;
 
         let mut tasks_queue = tasks_queue.lock().unwrap();
-        {
-            let progress = progress.lock().unwrap();
-            progress.spawn_new(
-                tasks_queue.len(),
-                &format!("Processing {} images", tasks_queue.len()),
-            );
+        let tasks = tasks_queue.len();
+
+        if let Ok(progress_bar) = progress.lock() {
+            progress_bar.spawn_new(tasks, &format!("Processing {} images", tasks));
         }
 
         tasks_queue.par_iter_mut().for_each(|this_task| {
