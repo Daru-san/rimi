@@ -1,248 +1,223 @@
-use std::mem::take;
-use std::path::{Path, PathBuf};
-use std::sync::Mutex;
-
-use crate::app::command::{ImageArgs, ImageCommand};
-use crate::backend::error::TaskError;
-use crate::backend::paths::{create_paths, paths_exist, prompt_overwrite};
-use crate::backend::progress::{AppProgressBar, BatchProgressBar};
-use crate::image::manipulator::{open_image, save_image_format};
-
 use super::{command_msg, run_command, RunBatch};
-use anyhow::Result;
+use crate::app::command::{ImageArgs, ImageCommand};
+use crate::backend::paths::create_path;
+use crate::image::manipulator::{open_image, save_image_format};
+use anyhow::{Error, Result};
+use crossbeam_channel::{Receiver, Sender};
 use image::DynamicImage;
-use rayon::iter::{
-    IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelDrainRange, ParallelIterator,
-};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
+use std::ops::Deref;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::time::Duration;
 
-const TASK_COUNT: usize = 4;
-
-#[derive(Debug, Default, PartialEq, Clone)]
+#[derive(Debug, Default, Clone)]
 struct ImageTask {
-    image: DynamicImage,
+    image: Option<DynamicImage>,
     image_path: PathBuf,
-    out_path: PathBuf,
 }
 
 impl ImageTask {
-    fn new(path: &Path, image: DynamicImage) -> Self {
+    fn new(path: &Path, image: Option<DynamicImage>) -> Self {
         ImageTask {
             image,
             image_path: path.to_path_buf(),
-            out_path: path.to_path_buf(),
         }
     }
 }
 
-struct BatchRunner {
-    tasks_queue: Mutex<Vec<Option<ImageTask>>>,
-    progress_bar: Mutex<BatchProgressBar>,
+#[derive(Clone)]
+enum TaskState {
+    Decode(String),
+    Process(String),
+    Save(String),
+    Failure(String),
 }
 
-impl BatchRunner {
-    fn init(verbosity: u32) -> Self {
-        Self {
-            tasks_queue: Mutex::new(Vec::with_capacity(0)),
-            progress_bar: Mutex::new(BatchProgressBar::init(verbosity, TASK_COUNT)),
+fn run(command: ImageCommand, args: ImageArgs, verbosity: u32) -> Result<()> {
+    let (task_tx, task_rx) = crossbeam_channel::unbounded();
+    let (state_tx, state_rx) = crossbeam_channel::unbounded();
+
+    let len = args.images.len() as u64;
+
+    let images = args.images.clone();
+
+    rayon::scope(|s| {
+        let decode_sender = state_tx.clone();
+        s.spawn(move |_| decode(images, task_tx, decode_sender));
+
+        let command = Arc::new(command);
+        let args = Arc::new(args);
+        s.spawn(move |_| process(command, args, task_rx, state_tx));
+
+        if verbosity != 0 {
+            s.spawn(move |_| message(state_rx, len));
+        }
+    });
+    Ok(())
+}
+
+fn message(message_reciever: Receiver<TaskState>, length: u64) {
+    const PROGRESS_CHARS: &str = "##-";
+    let bar = MultiProgress::new();
+    let decode_bar = bar.add(
+        ProgressBar::new(length).with_style(
+            ProgressStyle::with_template(
+                "[{pos}/{len}] {msg}\n{bar:40.cyan/blue} [{elapsed_precise}]",
+            )
+            .unwrap()
+            .progress_chars(PROGRESS_CHARS),
+        ),
+    );
+
+    decode_bar.enable_steady_tick(Duration::from_millis(500));
+    let process_bar = bar.add(
+        ProgressBar::new(length).with_style(
+            ProgressStyle::with_template(
+                "[{pos}/{len}] {msg}\n{bar:40.cyan/blue} [{elapsed_precise}]",
+            )
+            .unwrap()
+            .progress_chars(PROGRESS_CHARS),
+        ),
+    );
+    process_bar.enable_steady_tick(Duration::from_millis(500));
+    let save_bar = bar.add(
+        ProgressBar::new(length).with_style(
+            ProgressStyle::with_template(
+                "[{pos}/{len}] {msg}\n{bar:40.cyan/blue} [{elapsed_precise}]",
+            )
+            .unwrap()
+            .progress_chars(PROGRESS_CHARS),
+        ),
+    );
+    save_bar.enable_steady_tick(Duration::from_millis(500));
+    while let Ok(state) = message_reciever.recv() {
+        match state {
+            TaskState::Decode(message) => {
+                decode_bar.set_message(message);
+                decode_bar.inc(1);
+            }
+            TaskState::Process(message) => {
+                process_bar.set_message(message);
+                process_bar.inc(1);
+            }
+            TaskState::Save(message) => {
+                save_bar.set_message(message);
+                save_bar.inc(1);
+            }
+            TaskState::Failure(message) => {
+                bar.println(message).unwrap();
+            }
         }
     }
+}
 
-    fn run(&mut self, command: &ImageCommand, args: &ImageArgs) -> Result<()> {
-        self.decode_images(args)?;
+fn decode(image_paths: Vec<PathBuf>, task_tx: Sender<ImageTask>, message_tx: Sender<TaskState>) {
+    image_paths.par_iter().for_each(|image_path| {
+        let result = open_image(image_path);
 
-        self.outpaths(args)?;
+        match result {
+            Ok(good_image) => {
+                let task = ImageTask::new(image_path, Some(good_image));
+                message_tx
+                    .send(TaskState::Decode(format!(
+                        "{:?}",
+                        task.image_path.file_name().as_slice()
+                    )))
+                    .unwrap_or(());
 
-        self.process_images(command, args.format.as_deref())?;
-
-        self.save_images(args)?;
-
-        self.progress_bar.lock().unwrap().exit();
-
-        Ok(())
-    }
-
-    fn decode_images(&mut self, args: &ImageArgs) -> Result<()> {
-        let tasks_queue = &self.tasks_queue;
-        let progress_bar = &self.progress_bar;
-
-        let images = args.images.len() - 1;
-        {
-            let mut tasks_queue = tasks_queue.lock().unwrap();
-
-            tasks_queue.reserve_exact(images);
-
-            let progress_bar = progress_bar.lock().unwrap();
-
-            progress_bar.spawn_new(images, &format!("Decoding {} images", images));
+                task_tx.send(task).unwrap_or_else(|_| {
+                    println!("Task failed to send!");
+                });
+            }
+            Err(decode_error) => {
+                message_tx
+                    .send(TaskState::Failure(format!(
+                        "Failed to decode: {:?}\nErr:{:?}",
+                        image_path, decode_error
+                    )))
+                    .unwrap_or(());
+            }
         }
+    });
+}
 
-        args.images.par_iter().for_each(|image_path| {
-            if let Ok(progress_bar) = progress_bar.try_lock() {
-                progress_bar.start_task(&format!(
-                    "Decoding image: {:?}",
-                    image_path.file_name().as_slice()
-                ));
-            }
+fn process(
+    command: Arc<ImageCommand>,
+    args: Arc<ImageArgs>,
+    task_rx: Receiver<ImageTask>,
+    message_tx: Sender<TaskState>,
+) {
+    let dest = args.output.clone().unwrap_or(PathBuf::from("."));
 
-            let result = open_image(image_path);
-
-            match result {
-                Ok(mut good_image) => {
-                    let task = ImageTask::new(image_path.as_path(), take(&mut good_image));
-                    let mut tasks_queue = tasks_queue.lock().unwrap();
-                    tasks_queue.push(Some(task));
-                }
-                Err(decode_error) => {
-                    if let Ok(progress) = progress_bar.try_lock() {
-                        progress.send_trace(&format!("Error: {}", decode_error));
-                    }
-                }
-            }
-        });
-
-        tasks_queue.lock().unwrap().shrink_to_fit();
-
-        Ok(())
-    }
-
-    fn outpaths(&mut self, args: &ImageArgs) -> Result<()> {
-        let progress_bar = self.progress_bar.lock().unwrap();
-        let mut tasks_queue = self.tasks_queue.lock().unwrap();
-
-        progress_bar.spawn_new(1, "Creating output paths");
-
-        let destination_path = match &args.output {
-            Some(path) => path.to_path_buf(),
-            None => PathBuf::from("."),
+    task_rx.iter().par_bridge().for_each(|mut task| {
+        let result = if let Some(image) = task.image.take() {
+            run_command(command.deref(), image, args.format.as_deref())
+        } else {
+            Err(Error::msg("Something happened"))
         };
+        match result {
+            Ok(image) => {
+                let message = command_msg(
+                    &command,
+                    &format!("{:?}", task.image_path.file_name().as_slice()),
+                )
+                .unwrap_or(String::from("Error creating message"));
+                message_tx.send(TaskState::Process(message)).unwrap_or(());
 
-        let input_paths: Vec<PathBuf> = tasks_queue
-            .par_iter()
-            .flatten_iter()
-            .map(|task| task.image_path.to_path_buf())
-            .collect();
-
-        let output_paths = match create_paths(
-            input_paths,
-            destination_path,
-            args.name_expr.as_deref(),
-            args.format.as_deref(),
-        ) {
-            Ok(out_paths) => out_paths,
-            Err(path_create_error) => {
-                progress_bar.abort("Error creating out paths");
-                return Err(TaskError::SingleError(path_create_error).into());
-            }
-        };
-
-        match paths_exist(&output_paths) {
-            Ok(paths) => {
-                if !paths.is_empty() && !args.overwrite {
-                    let prompt = || -> Result<()> {
-                        match prompt_overwrite(paths) {
-                            Ok(()) => Ok(()),
-                            Err(error) => Err(TaskError::SingleError(error).into()),
-                        }
-                    };
-                    progress_bar.suspend(|| -> Result<()> { prompt() })?;
-                }
-            }
-            Err(e) => return Err(TaskError::SingleError(e).into()),
-        }
-
-        for (index, task) in tasks_queue.iter_mut().flatten().enumerate() {
-            task.out_path = output_paths[index].to_path_buf();
-        }
-
-        progress_bar.message("Paths created successfully.");
-
-        Ok(())
-    }
-
-    fn process_images(&mut self, command: &ImageCommand, format: Option<&str>) -> Result<()> {
-        let tasks_queue = &self.tasks_queue;
-        let progress = &self.progress_bar;
-
-        let mut tasks_queue = tasks_queue.lock().unwrap();
-        let tasks = tasks_queue.len();
-
-        if let Ok(progress_bar) = progress.lock() {
-            progress_bar.spawn_new(tasks, &format!("Processing {} images", tasks));
-        }
-
-        tasks_queue.par_iter_mut().for_each(|this_task| {
-            if let Some(task) = this_task {
-                if let Ok(progress_bar) = progress.try_lock() {
-                    if let Some(path) = task.image_path.file_name() {
-                        progress_bar.start_task(
-                            &command_msg(
-                                command,
-                                path.to_str().unwrap_or(
-                                    task.image_path.as_os_str().to_string_lossy().as_ref(),
-                                ),
-                            )
-                            .unwrap_or(String::from("Error formatting this message.")),
-                        );
-                    }
-                }
-
-                let result = run_command(command, &mut task.image, format);
-
-                match result {
-                    Ok(new_image) => task.image = new_image,
+                match save_image(&task.image_path, &dest, image, &message_tx, args.deref()) {
+                    Ok(()) => {}
                     Err(error) => {
-                        *this_task = None;
-                        if let Ok(progress) = progress.try_lock() {
-                            progress.send_trace(&format!("Error: {}", error));
-                        }
+                        message_tx
+                            .send(TaskState::Failure(error.to_string()))
+                            .unwrap_or(());
                     }
                 };
             }
-        });
-        tasks_queue.retain(|task| task.is_some());
-        tasks_queue.shrink_to_fit();
-        Ok(())
-    }
-    fn save_images(&mut self, args: &ImageArgs) -> Result<()> {
-        let tasks_queue = &self.tasks_queue;
-        let progress = &self.progress_bar;
-
-        let mut tasks_queue = tasks_queue.lock().unwrap();
-        let tasks = tasks_queue.len();
-
-        if let Ok(progress_bar) = progress.lock() {
-            progress_bar.spawn_new(tasks, &format!("Processing {} images", tasks));
-        }
-
-        tasks_queue.par_iter_mut().for_each(|this_task| {
-            if let Some(task) = this_task {
-                if let Ok(progress_bar) = progress.try_lock() {
-                    progress_bar.start_task(&format!(
-                        "Saving image: {:?}",
-                        task.out_path.file_name().as_slice()
-                    ));
-                }
-
-                let result = save_image_format(&task.image, &task.out_path, args.format.as_deref());
-
-                match result {
-                    Ok(()) => (),
-                    Err(error) => {
-                        if let Ok(progress) = progress.try_lock() {
-                            progress.send_trace(&format!("Error: {}", error));
-                        }
-                    }
-                };
+            Err(error) => {
+                message_tx
+                    .send(TaskState::Failure(format!("Failed operation: {:?}", error)))
+                    .unwrap_or(());
             }
-            *this_task = None;
-        });
-        tasks_queue.par_drain(..);
-        Ok(())
+        }
+    });
+}
+
+fn save_image(
+    file: &Path,
+    destination: &Path,
+    image: DynamicImage,
+    message_tx: &Sender<TaskState>,
+    args: &ImageArgs,
+) -> Result<()> {
+    let path = match create_path(
+        file.to_path_buf(),
+        destination.to_path_buf(),
+        args.name_expr.as_deref(),
+        args.format.as_deref(),
+    ) {
+        Ok(path) => path,
+        Err(error) => return Err(Error::msg(error)),
+    };
+
+    match save_image_format(&image, &path, args.format.as_deref()) {
+        Ok(()) => match message_tx.send(TaskState::Save(format!("Image saved:{:?}", path))) {
+            Ok(_) => {
+                drop(image);
+                Ok(())
+            }
+            Err(_) => Ok(()),
+        },
+        Err(e) => match message_tx.send(TaskState::Failure(format!("Error: {:?}", e))) {
+            Ok(_) => Ok(()),
+            Err(_) => Ok(()),
+        },
     }
 }
 
 impl RunBatch for ImageArgs {
     fn run_batch(&self, command: &ImageCommand, verbosity: u32) -> Result<()> {
-        BatchRunner::init(verbosity).run(command, self)
+        run(command.clone(), self.clone(), verbosity)
     }
 }
