@@ -60,6 +60,9 @@ fn image_format(format: Option<&str>, path: Option<&Path>) -> Result<ImageFormat
 }
 
 pub fn convert_image(image: DynamicImage, format: Option<&str>) -> Result<DynamicImage, String> {
+    if format.is_none() {
+        return Ok(image);
+    }
     let image_format = image_format(format, None)?;
 
     // Avif cannot be decoded in memory,
