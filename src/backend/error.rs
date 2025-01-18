@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub enum TaskError {
     #[error("Image task failed: {0}")]
     SingleError(String),
