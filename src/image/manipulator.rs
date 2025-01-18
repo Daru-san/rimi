@@ -4,7 +4,6 @@ use image::{load_from_memory, DynamicImage, ImageFormat, ImageReader};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use std::fs::File;
 use std::io::{BufWriter, Cursor, Read};
-use std::mem::take;
 use std::path::{Path, PathBuf};
 
 pub fn open_image(image_path: &Path) -> Result<DynamicImage, String> {
@@ -60,17 +59,23 @@ fn image_format(format: Option<&str>, path: Option<&Path>) -> Result<ImageFormat
 }
 
 pub fn convert_image(image: DynamicImage, format: Option<&str>) -> Result<DynamicImage, String> {
-    if format.is_none() {
+    let image_format = if let Some(format_extension) = format {
+        match ImageFormat::from_extension(format_extension) {
+            Some(format) => match format {
+                // Avif cannot be decoded in memory yet,
+                // hence we return and leave it to save_image_format()
+                ImageFormat::Avif => return Ok(image),
+                other_fmt => other_fmt,
+            },
+            _ => {
+                return Err(format!(
+                    "Could not get image format from extension: {format_extension}"
+                ))
+            }
+        }
+    } else {
         return Ok(image);
-    }
-    let image_format = image_format(format, None)?;
-
-    // Avif cannot be decoded in memory,
-    // hence we return and leave it to save_image_format()
-    // TODO: Fix Avif decoding
-    if image_format == ImageFormat::Avif {
-        return Ok(image);
-    }
+    };
 
     let mut writer = Cursor::new(Vec::with_capacity(image.as_bytes().len() + 1));
 
@@ -82,7 +87,7 @@ pub fn convert_image(image: DynamicImage, format: Option<&str>) -> Result<Dynami
     let result = load_from_memory(&writer.into_inner());
 
     match result {
-        Ok(mut image) => Ok(take(&mut image)),
+        Ok(image) => Ok(image),
         Err(e) => Err(e.to_string()),
     }
 }
