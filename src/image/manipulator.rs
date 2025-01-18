@@ -59,17 +59,14 @@ fn image_format(format: Option<&str>, path: Option<&Path>) -> Result<ImageFormat
     }
 }
 
-pub fn convert_image(
-    image: &mut DynamicImage,
-    format: Option<&str>,
-) -> Result<DynamicImage, String> {
+pub fn convert_image(image: DynamicImage, format: Option<&str>) -> Result<DynamicImage, String> {
     let image_format = image_format(format, None)?;
 
     // Avif cannot be decoded in memory,
     // hence we return and leave it to save_image_format()
     // TODO: Fix Avif decoding
     if image_format == ImageFormat::Avif {
-        return Ok(take(image));
+        return Ok(image);
     }
 
     let mut writer = Cursor::new(Vec::with_capacity(image.as_bytes().len() + 1));
@@ -126,11 +123,11 @@ pub struct Dimensions {
 }
 
 pub fn resize_image(
-    image: &mut DynamicImage,
+    image: DynamicImage,
     dimensions: Dimensions,
     filter: String,
     preserve_aspect: bool,
-) -> Result<(), String> {
+) -> Result<DynamicImage, String> {
     let filter_type;
     match filter.to_uppercase().as_str() {
         "NEAREST" => {
@@ -153,18 +150,16 @@ pub fn resize_image(
         }
     }
 
-    *image = if preserve_aspect {
-        image.resize(dimensions.x, dimensions.y, filter_type)
+    if preserve_aspect {
+        Ok(image.resize(dimensions.x, dimensions.y, filter_type))
     } else {
-        image.resize_exact(dimensions.x, dimensions.y, filter_type)
-    };
-
-    Ok(())
+        Ok(image.resize_exact(dimensions.x, dimensions.y, filter_type))
+    }
 }
 
-pub fn remove_background(image: &mut DynamicImage) {
+pub fn remove_background(image: DynamicImage) -> DynamicImage {
     use super::color::BitDepth::{B16, B32, B8};
-    let color_info = ColorInfo::from_image(image);
+    let color_info = ColorInfo::from_image(&image);
 
     match color_info.bit_depth {
         B8 => {
@@ -174,7 +169,7 @@ pub fn remove_background(image: &mut DynamicImage) {
                     pixel[3] = 0;
                 }
             });
-            *image = DynamicImage::ImageRgba8(image8bit);
+            DynamicImage::ImageRgba8(image8bit)
         }
 
         B16 => {
@@ -184,7 +179,7 @@ pub fn remove_background(image: &mut DynamicImage) {
                     pixel[3] = 0;
                 }
             });
-            *image = DynamicImage::ImageRgba16(image16bit);
+            DynamicImage::ImageRgba16(image16bit)
         }
 
         B32 => {
@@ -194,7 +189,7 @@ pub fn remove_background(image: &mut DynamicImage) {
                     pixel[3] = 0.0;
                 }
             });
-            *image = DynamicImage::ImageRgba32F(image32bit);
+            DynamicImage::ImageRgba32F(image32bit)
         }
     }
 }
