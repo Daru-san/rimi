@@ -1,5 +1,4 @@
 use std::fmt::Display;
-use std::mem::take;
 use std::str::FromStr;
 
 use clap::ValueEnum;
@@ -113,9 +112,9 @@ impl ColorInfo {
             },
         }
     }
-    pub fn convert_image(&self, image: &mut DynamicImage) {
+    pub fn convert_image(&self, image: DynamicImage) -> DynamicImage {
         let color_space = self.to_color_type();
-        *image = match color_space {
+        match color_space {
             ColorType::L8 => DynamicImage::ImageLuma8(image.to_luma8()),
             ColorType::La8 => DynamicImage::ImageLumaA8(image.to_luma_alpha8()),
             ColorType::L16 => DynamicImage::ImageLuma16(image.to_luma16()),
@@ -126,8 +125,8 @@ impl ColorInfo {
             ColorType::Rgba16 => DynamicImage::ImageRgba16(image.to_rgba16()),
             ColorType::Rgb32F => DynamicImage::ImageRgb32F(image.to_rgb32f()),
             ColorType::Rgba32F => DynamicImage::ImageRgba32F(image.to_rgba32f()),
-            _ => take(image),
-        };
+            _ => image,
+        }
     }
     fn to_color_type(&self) -> ColorType {
         match self.color_space {
