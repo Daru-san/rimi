@@ -17,10 +17,9 @@ pub struct RecolorArgs {
 }
 
 impl RecolorArgs {
-    pub fn run(&self, image: &mut DynamicImage) -> Result<()> {
+    pub fn run(&self, image: DynamicImage) -> Result<DynamicImage> {
         let color_info = ColorInfo::new(&self.color_space, &self.bit_depth);
 
-        color_info.convert_image(image);
-        Ok(())
+        Ok(color_info.convert_image(image))
     }
 }

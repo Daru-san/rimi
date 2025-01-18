@@ -8,8 +8,7 @@ use image::DynamicImage;
 pub struct TransparentArgs {}
 
 impl TransparentArgs {
-    pub fn run(&self, image: &mut DynamicImage) -> Result<()> {
-        remove_background(image);
-        Ok(())
+    pub fn run(&self, image: DynamicImage) -> Result<DynamicImage> {
+        Ok(remove_background(image))
     }
 }

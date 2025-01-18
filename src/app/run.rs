@@ -1,5 +1,3 @@
-use std::mem::take;
-
 use anyhow::{Error, Result};
 use image::DynamicImage;
 
@@ -20,24 +18,24 @@ pub trait RunBatch {
 
 fn run_command(
     command: &ImageCommand,
-    image: &mut DynamicImage,
+    image: DynamicImage,
     format: Option<&str>,
 ) -> Result<DynamicImage> {
     match command {
         ImageCommand::Convert => match convert_image(image, format) {
-            Ok(mut image) => Ok(take(&mut image)),
+            Ok(image) => Ok(image),
             Err(convert_error) => Err(Error::msg(convert_error)),
         },
         ImageCommand::Resize(args) => match args.run(image) {
-            Ok(()) => Ok(take(image)),
+            Ok(image) => Ok(image),
             Err(resize_error) => Err(resize_error),
         },
         ImageCommand::Recolor(args) => match args.run(image) {
-            Ok(()) => Ok(take(image)),
+            Ok(image) => Ok(image),
             Err(recolor_error) => Err(recolor_error),
         },
         ImageCommand::Transparentize(args) => match args.run(image) {
-            Ok(()) => Ok(take(image)),
+            Ok(image) => Ok(image),
             Err(removal_error) => Err(removal_error),
         },
     }

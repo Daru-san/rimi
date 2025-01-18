@@ -25,7 +25,7 @@ pub struct ResizeArgs {
 }
 
 impl ResizeArgs {
-    pub fn run(&self, image: &mut DynamicImage) -> Result<()> {
+    pub fn run(&self, image: DynamicImage) -> Result<DynamicImage> {
         match resize_image(
             image,
             Dimensions {
@@ -35,7 +35,7 @@ impl ResizeArgs {
             self.filter.to_string(),
             self.preserve_aspect,
         ) {
-            Ok(()) => Ok(()),
+            Ok(image) => Ok(image),
             Err(resize_error) => Err(TaskError::SingleError(resize_error).into()),
         }
     }
