@@ -34,7 +34,7 @@ pub struct CommandArgs {
 }
 
 /// Image manipulation arguments
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[clap(group = ArgGroup::new("image_group").conflicts_with("app_group"))]
 pub struct ImageArgs {
     #[command(subcommand)]
@@ -72,7 +72,7 @@ struct VerbosityArgs {
     verbose: bool,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum ImageCommand {
     /// Convert an image
     #[clap(short_flag('c'))]

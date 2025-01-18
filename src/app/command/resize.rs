@@ -5,7 +5,7 @@ use anyhow::Result;
 use clap::Parser;
 use image::DynamicImage;
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 pub struct ResizeArgs {
     /// New width
     #[clap(short, long)]
