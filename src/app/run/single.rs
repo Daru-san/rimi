@@ -20,7 +20,7 @@ impl RunSingle for ImageArgs {
             image_path.to_path_buf().to_string_lossy()
         ));
 
-        let mut image = match open_image(image_path) {
+        let image = match open_image(image_path) {
             Ok(image) => {
                 progress_bar.message("Image decoded successfully");
                 image
@@ -55,11 +55,13 @@ impl RunSingle for ImageArgs {
             output_path.to_path_buf().to_string_lossy()
         ));
 
-        progress_bar.start_task(
-            &command_msg(command, image_path.file_name().unwrap().to_str().unwrap()).unwrap(),
-        );
+        if let Some(filename) = image_path.file_name() {
+            if let Some(filename) = filename.to_str() {
+                progress_bar.start_task(&command_msg(command, filename).unwrap());
+            }
+        }
 
-        let image = match run_command(command, &mut image, self.format.as_deref()) {
+        let image = match run_command(command, image, self.format.as_deref()) {
             Ok(good_image) => good_image,
             Err(error) => return Err(error),
         };
