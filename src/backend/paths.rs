@@ -3,14 +3,12 @@ use std::path::{Path, PathBuf};
 use dialoguer::Confirm;
 use image::ImageFormat;
 
-pub fn create_paths(
-    files: Vec<PathBuf>,
+pub fn create_path(
+    file: PathBuf,
     destination: PathBuf,
     name_expr: Option<&str>,
     image_format: Option<&str>,
-) -> Result<Vec<PathBuf>, String> {
-    let mut paths: Vec<PathBuf> = Vec::new();
-
+) -> Result<PathBuf, String> {
     if destination.is_file() {
         return Err(format!(
             "Chosen path is a file, please choose a directory: {}",
@@ -39,63 +37,45 @@ pub fn create_paths(
         },
     };
 
-    for (index, file) in files.iter().enumerate() {
-        let file_name = match name_expr {
-            Some(expression) => {
-                format!("{expression}_{index}")
+    let file_name = match name_expr {
+        Some(expression) => expression.to_string(),
+        None => {
+            if let Some(filename) = file.file_name() {
+                filename.to_string_lossy().to_string()
+            } else {
+                String::from("image")
             }
-            None => {
-                if let Some(filename) = file.file_name() {
-                    filename.to_string_lossy().to_string()
+        }
+    };
+
+    let path = destination.to_path_buf();
+    let mut path = path.join(file_name);
+
+    let is_formatted = match image_format {
+        Some(image_format) => path.set_extension(image_format.extensions_str()[0]),
+        None => match file.extension() {
+            Some(extension) => path.set_extension(extension),
+            None => return Err("File does not have an extension?".into()),
+        },
+    };
+
+    let mut i = 0;
+    while let Ok(exists) = path.try_exists() {
+        if exists {
+            if let Some(last) = path.iter().last() {
+                if *last != *i.to_string() {
+                    path.extend([i.to_string()].iter());
                 } else {
-                    format!("image_{index}")
+                    i += 1;
                 }
             }
-        };
-
-        let path = destination.to_path_buf();
-        let mut path = path.join(file_name);
-
-        let is_formatted = match image_format {
-            Some(image_format) => path.set_extension(image_format.extensions_str()[0]),
-            None => match file.extension() {
-                Some(extension) => path.set_extension(extension),
-                None => return Err("File does not have an extension?".into()),
-            },
-        };
-
-        if is_formatted {
-            paths.push(path);
-        } else {
-            return Err("Error formatting output file".into());
         }
     }
-    Ok(paths)
-}
 
-pub fn paths_exist(paths: &[PathBuf]) -> Result<Vec<&PathBuf>, String> {
-    let existing_paths = paths
-        .iter()
-        .filter(|path| path.try_exists().unwrap_or(false))
-        .collect();
-    Ok(existing_paths)
-}
-
-pub fn prompt_overwrite(paths: Vec<&PathBuf>) -> Result<(), String> {
-    println!("Existing files found: ");
-    for path in paths {
-        println!("{}", path.to_string_lossy());
-    }
-
-    let confirm = Confirm::new()
-        .with_prompt("Overwrite these files?")
-        .interact();
-    match confirm {
-        Ok(overwrite) => match overwrite {
-            true => Ok(()),
-            false => Err("Not overwriting existing files".to_string()),
-        },
-        Err(confirm_error) => Err(confirm_error.to_string()),
+    if is_formatted {
+        Ok(path)
+    } else {
+        Err("Error formatting output file".into())
     }
 }
 
