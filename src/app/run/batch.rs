@@ -239,20 +239,30 @@ fn save_images(tasks: &mut Vec<ImageTask>, message_tx: &Sender<TaskState>, args:
     .unwrap();
     let tasks = tasks.par_drain(..);
     let tasks = tasks.zip(paths);
+    tasks.for_each_with(message_tx, |message_tx, (task, path)| {
+        let result = if let Some(image) = task.image {
+            save_image_format(&image, &path, args.format.as_deref())
+        } else {
+            message_tx
+                .send(TaskState::Failure("".to_string()))
+                .unwrap_or(());
+            return;
+        };
 
-    match save_image_format(&image, &path, args.format.as_deref()) {
-        Ok(()) => match message_tx.send(TaskState::Save(format!("Image saved:{:?}", path))) {
-            Ok(_) => {
-                drop(image);
-                Ok(())
+        match result {
+            Ok(()) => {
+                message_tx
+                    .send(TaskState::Save(format!("Image saved:{:?}", path)))
+                    .unwrap_or(());
+                let num = acc.load(std::sync::atomic::Ordering::Relaxed);
+                acc.fetch_add(num + 1, std::sync::atomic::Ordering::Relaxed);
             }
-            Err(_) => Ok(()),
-        },
-        Err(e) => match message_tx.send(TaskState::Failure(format!("Error: {:?}", e))) {
-            Ok(_) => Ok(()),
-            Err(_) => Ok(()),
-        },
-    }
+
+            Err(e) => message_tx
+                .send(TaskState::Failure(format!("Error: {:?}", e)))
+                .unwrap_or(()),
+        };
+    });
     message_tx
         .send(TaskState::Complete(acc.into_inner() as u64))
         .unwrap_or(());
