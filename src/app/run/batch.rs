@@ -224,22 +224,19 @@ fn process(
     tasks_vec.collect()
 }
 
-fn save_image(
-    file: &Path,
-    destination: &Path,
-    image: DynamicImage,
-    message_tx: &Sender<TaskState>,
-    args: &ImageArgs,
-) -> Result<()> {
-    let path = match create_path(
-        file.to_path_buf(),
-        destination.to_path_buf(),
+fn save_images(tasks: &mut Vec<ImageTask>, message_tx: &Sender<TaskState>, args: &ImageArgs) {
+    let destination = args.output.clone().unwrap_or(PathBuf::from("."));
+    let acc = AtomicUsize::new(0);
+    let paths: Vec<PathBuf> = create_paths(
+        tasks
+            .par_iter()
+            .map(|task| task.image_path.to_path_buf())
+            .collect(),
+        destination,
         args.name_expr.as_deref(),
         args.format.as_deref(),
-    ) {
-        Ok(path) => path,
-        Err(error) => return Err(Error::msg(error)),
-    };
+    )
+    .unwrap();
 
     match save_image_format(&image, &path, args.format.as_deref()) {
         Ok(()) => match message_tx.send(TaskState::Save(format!("Image saved:{:?}", path))) {
