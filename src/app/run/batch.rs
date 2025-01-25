@@ -9,6 +9,7 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -145,6 +146,7 @@ fn message(message_reciever: Receiver<TaskState>, length: u64) {
 }
 
 fn decode(image_paths: Vec<PathBuf>, task_tx: Sender<ImageTask>, message_tx: Sender<TaskState>) {
+    let acc = AtomicUsize::new(0);
     image_paths.par_iter().for_each(|image_path| {
         let result = open_image(image_path);
 
@@ -157,6 +159,7 @@ fn decode(image_paths: Vec<PathBuf>, task_tx: Sender<ImageTask>, message_tx: Sen
                         task.image_path.file_name().as_slice()
                     )))
                     .unwrap_or(());
+                acc.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
                 task_tx.send(task).unwrap_or_else(|_| {
                     println!("Task failed to send!");
