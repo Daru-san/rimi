@@ -182,10 +182,13 @@ fn process(
     args: Arc<ImageArgs>,
     task_rx: Receiver<ImageTask>,
     message_tx: Sender<TaskState>,
-) {
-    let dest = args.output.clone().unwrap_or(PathBuf::from("."));
+) -> Vec<ImageTask> {
+    let mut tasks_vec: Vec<ImageTask> = Vec::new();
+    while let Ok(task) = task_rx.recv() {
+        tasks_vec.push(task);
+    }
 
-    task_rx.iter().par_bridge().for_each(|mut task| {
+    let tasks_vec = tasks_vec.par_iter_mut().filter_map(|task| {
         let result = if let Some(image) = task.image.take() {
             run_command(command.deref(), image, args.format.as_deref())
         } else {
@@ -199,20 +202,14 @@ fn process(
                 )
                 .unwrap_or(String::from("Error creating message"));
                 message_tx.send(TaskState::Process(message)).unwrap_or(());
-
-                match save_image(&task.image_path, &dest, image, &message_tx, args.deref()) {
-                    Ok(()) => {}
-                    Err(error) => {
-                        message_tx
-                            .send(TaskState::Failure(error.to_string()))
-                            .unwrap_or(());
-                    }
-                };
+                task.image = Some(image);
+                Some(task.to_owned())
             }
             Err(error) => {
                 message_tx
                     .send(TaskState::Failure(format!("Failed operation: {:?}", error)))
                     .unwrap_or(());
+                None
             }
         }
     });
@@ -221,6 +218,7 @@ fn process(
             tasks_vec.opt_len().unwrap_or(0) as u64
         ))
         .unwrap_or(());
+    tasks_vec.collect()
 }
 
 fn save_image(
