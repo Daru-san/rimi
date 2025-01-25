@@ -2,13 +2,15 @@ use std::path::{Path, PathBuf};
 
 use dialoguer::Confirm;
 use image::ImageFormat;
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
-pub fn create_path(
-    file: PathBuf,
+pub fn create_paths(
+    paths: Vec<PathBuf>,
     destination: PathBuf,
     name_expr: Option<&str>,
     image_format: Option<&str>,
-) -> Result<PathBuf, String> {
+) -> Result<Vec<PathBuf>, String> {
+    let mut paths = paths;
     if destination.is_file() {
         return Err(format!(
             "Chosen path is a file, please choose a directory: {}",
@@ -22,7 +24,6 @@ pub fn create_path(
             destination.as_os_str().to_string_lossy()
         ));
     }
-
     let image_format = match image_format {
         Some(format) => match ImageFormat::from_extension(format) {
             Some(image_format) => Some(image_format),
@@ -37,46 +38,38 @@ pub fn create_path(
         },
     };
 
-    let file_name = match name_expr {
-        Some(expression) => expression.to_string(),
-        None => {
-            if let Some(filename) = file.file_name() {
-                filename.to_string_lossy().to_string()
-            } else {
-                String::from("image")
-            }
+    let set_expr = |acc: usize, name: String| -> String {
+        let mut name = name;
+        name.push_str(&format!("_{acc}"));
+        name
+    };
+    let set_extension = |file: &PathBuf, path: &mut PathBuf| -> Result<bool, String> {
+        match image_format {
+            Some(image_format) => Ok(path.set_extension(image_format.extensions_str()[0])),
+            None => match file.extension() {
+                Some(extension) => Ok(path.set_extension(extension)),
+                None => Err("File does not have an extension?".into()),
+            },
         }
     };
 
-    let path = destination.to_path_buf();
-    let mut path = path.join(file_name);
-
-    let is_formatted = match image_format {
-        Some(image_format) => path.set_extension(image_format.extensions_str()[0]),
-        None => match file.extension() {
-            Some(extension) => path.set_extension(extension),
-            None => return Err("File does not have an extension?".into()),
-        },
-    };
-
-    let mut i = 0;
-    while let Ok(exists) = path.try_exists() {
-        if exists {
-            if let Some(last) = path.iter().last() {
-                if *last != *i.to_string() {
-                    path.extend([i.to_string()].iter());
+    paths.par_iter_mut().enumerate().for_each(|(acc, path)| {
+        let file_name = match name_expr {
+            Some(expression) => set_expr(acc, expression.to_string()),
+            None => {
+                if let Some(filename) = path.file_name() {
+                    filename.to_string_lossy().to_string()
                 } else {
-                    i += 1;
+                    String::from("image")
                 }
             }
-        }
-    }
-
-    if is_formatted {
-        Ok(path)
-    } else {
-        Err("Error formatting output file".into())
-    }
+        };
+        let dest = destination.to_path_buf();
+        let mut dest = dest.join(file_name);
+        let _ = set_extension(path, &mut dest);
+        *path = (*dest).to_path_buf();
+    });
+    Ok(paths)
 }
 
 pub fn prompt_overwrite_single(path: &Path) -> Result<(), String> {
