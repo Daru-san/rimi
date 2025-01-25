@@ -172,6 +172,9 @@ fn decode(image_paths: Vec<PathBuf>, task_tx: Sender<ImageTask>, message_tx: Sen
             }
         }
     });
+    message_tx
+        .send(TaskState::InitProcessing(acc.into_inner() as u64))
+        .unwrap_or(());
 }
 
 fn process(
@@ -213,6 +216,11 @@ fn process(
             }
         }
     });
+    message_tx
+        .send(TaskState::InitSaving(
+            tasks_vec.opt_len().unwrap_or(0) as u64
+        ))
+        .unwrap_or(());
 }
 
 fn save_image(
@@ -245,6 +253,9 @@ fn save_image(
             Err(_) => Ok(()),
         },
     }
+    message_tx
+        .send(TaskState::Complete(acc.into_inner() as u64))
+        .unwrap_or(());
 }
 
 impl RunBatch for ImageArgs {
