@@ -30,8 +30,11 @@ impl ImageTask {
 #[derive(Clone)]
 enum TaskState {
     Decode(String),
+    InitProcessing(u64),
     Process(String),
+    InitSaving(u64),
     Save(String),
+    Complete(u64),
     Failure(String),
 }
 
@@ -72,25 +75,28 @@ fn message(message_reciever: Receiver<TaskState>, length: u64) {
     );
 
     decode_bar.enable_steady_tick(Duration::from_millis(500));
-    let process_bar = bar.add(
-        ProgressBar::new(length).with_style(
+
+    let mut process_bar = bar.add(ProgressBar::hidden());
+    let mut save_bar = bar.add(ProgressBar::hidden());
+    let start_progress = |bar: &mut ProgressBar, length: u64| {
+        *bar = ProgressBar::new(length).with_style(
             ProgressStyle::with_template(
                 "[{pos}/{len}] {msg}\n{bar:40.cyan/blue} [{elapsed_precise}]",
             )
             .unwrap()
             .progress_chars(PROGRESS_CHARS),
-        ),
-    );
-    process_bar.enable_steady_tick(Duration::from_millis(500));
-    let save_bar = bar.add(
-        ProgressBar::new(length).with_style(
+        );
+    };
+
+    let start_saving = |bar: &mut ProgressBar, length: u64| {
+        *bar = ProgressBar::new(length).with_style(
             ProgressStyle::with_template(
                 "[{pos}/{len}] {msg}\n{bar:40.cyan/blue} [{elapsed_precise}]",
             )
             .unwrap()
             .progress_chars(PROGRESS_CHARS),
-        ),
-    );
+        );
+    };
     save_bar.enable_steady_tick(Duration::from_millis(500));
     while let Ok(state) = message_reciever.recv() {
         match state {
@@ -98,13 +104,35 @@ fn message(message_reciever: Receiver<TaskState>, length: u64) {
                 decode_bar.set_message(message);
                 decode_bar.inc(1);
             }
+            TaskState::InitProcessing(num) => {
+                decode_bar.finish_with_message(format!(
+                    "Decoded {num} images with {} errors.",
+                    length - num
+                ));
+                start_progress(&mut process_bar, num);
+            }
             TaskState::Process(message) => {
                 process_bar.set_message(message);
                 process_bar.inc(1);
             }
+            TaskState::InitSaving(num) => {
+                let length = process_bar.length().unwrap_or(length);
+                process_bar.finish_with_message(format!(
+                    "Processed {num} images with {} errors",
+                    length - num
+                ));
+                start_saving(&mut save_bar, num);
+            }
             TaskState::Save(message) => {
                 save_bar.set_message(message);
                 save_bar.inc(1);
+            }
+            TaskState::Complete(num) => {
+                let length = save_bar.length().unwrap_or(length);
+                save_bar.finish_with_message(format!(
+                    "Saved {num} images with {} errors",
+                    length - num
+                ));
             }
             TaskState::Failure(message) => {
                 bar.println(message).unwrap();
