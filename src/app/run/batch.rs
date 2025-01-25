@@ -1,12 +1,15 @@
 use super::{command_msg, run_command, RunBatch};
 use crate::app::command::{ImageArgs, ImageCommand};
-use crate::backend::paths::create_path;
+use crate::backend::paths::create_paths;
 use crate::image::manipulator::{open_image, save_image_format};
 use anyhow::{Error, Result};
 use crossbeam_channel::{Receiver, Sender};
 use image::DynamicImage;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
+use rayon::iter::{
+    IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator,
+    ParallelDrainRange, ParallelIterator,
+};
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicUsize;
