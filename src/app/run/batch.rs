@@ -237,6 +237,8 @@ fn save_images(tasks: &mut Vec<ImageTask>, message_tx: &Sender<TaskState>, args:
         args.format.as_deref(),
     )
     .unwrap();
+    let tasks = tasks.par_drain(..);
+    let tasks = tasks.zip(paths);
 
     match save_image_format(&image, &path, args.format.as_deref()) {
         Ok(()) => match message_tx.send(TaskState::Save(format!("Image saved:{:?}", path))) {
