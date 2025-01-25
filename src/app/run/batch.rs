@@ -48,11 +48,14 @@ fn run(command: ImageCommand, args: ImageArgs, verbosity: u32) -> Result<()> {
 
     rayon::scope(|s| {
         let decode_sender = state_tx.clone();
-        s.spawn(move |_| decode(images, task_tx, decode_sender));
-
         let command = Arc::new(command);
         let args = Arc::new(args);
-        s.spawn(move |_| process(command, args, task_rx, state_tx));
+        let proc_tx = state_tx.clone();
+        s.spawn(move |_| {
+            decode(images, task_tx, decode_sender);
+            let mut tasks = process(command, args.clone(), task_rx, proc_tx);
+            save_images(&mut tasks, &state_tx, &args);
+        });
 
         if verbosity != 0 {
             s.spawn(move |_| message(state_rx, len));
