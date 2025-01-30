@@ -1,39 +1,53 @@
 # Rimi
 
-A simple image manipulation program for the terminal written in rust.
+A fast CLI image manipulation tool, written for speed in rust.
 
 ## Features
 
-### Features as of v0.1.1
+### Features as of v0.1.6
 
+- Batch operations
 - Conversion
 - Resizing
-
-### To-do
-
-- [ ] Image format decoding
+- Background removal
+- Color changing
 
 ## Usage
 
-```text
-Simple in-development image manipulation tool
+### Batch operations
 
-Usage: rimi [OPTIONS] <FILENAME> [COMMAND]
+When an input of images above 1 is entered, the program will enter batch mode.
+When we want to run a few operations on a large set of images we run:
 
-Commands:
-  convert, -c  Convert an image
-  resize, -r   Resize an image
-  help         Print this message or the help of the given subcommand(s)
-
-Arguments:
-  <FILENAME>  Input image filename
-
-Options:
-  -o, --output <OUTPUT>  Output image
-  -x, --overwrite        Overwrite any existing files when saving the image
-  -h, --help             Print help
-  -V, --version          Print version
+```Shell
+rimi convert -i ~/some-dir/*.jpg -o other-dir -f png
 ```
+
+An example with resizing and conversion together:
+
+```Shell
+rimi resize -i * -o out-dir -w 3840 -H 2160 -f avif
+```
+
+You can also use name expressions to customise the names of the output images:
+
+```Shell
+rimi convert -i * -o dir/ -f avif -n this-image
+```
+
+Resulting in this:
+```Shell
+ls dir/
+
+this_image_1.avif
+this_image_2.avif
+this_image_3.avif
+...
+```
+#### A few notes about batch operations
+
+- The number of operations done is parallel is roughly equal to the system core count
+- A maximum of 10000 images can be manipulated at once
 
 ### Image conversion
 
