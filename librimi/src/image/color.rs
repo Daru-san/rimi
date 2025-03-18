@@ -183,3 +183,50 @@ impl ColorInfo {
         }
     }
 }
+impl From<ColorType> for ColorInfo {
+    fn from(value: ColorType) -> Self {
+        match value {
+            ColorType::L8 => Self {
+                bit_depth: BitDepth::B8,
+                color_space: ColorSpace::Luma,
+            },
+            ColorType::La8 => Self {
+                bit_depth: BitDepth::B8,
+                color_space: ColorSpace::LumaA,
+            },
+            ColorType::Rgb8 => Self {
+                bit_depth: BitDepth::B8,
+                color_space: ColorSpace::Rgb,
+            },
+            ColorType::Rgba8 => Self {
+                bit_depth: BitDepth::B8,
+                color_space: ColorSpace::RgbA,
+            },
+            ColorType::L16 => Self {
+                bit_depth: BitDepth::B16,
+                color_space: ColorSpace::Luma,
+            },
+            ColorType::La16 => Self {
+                bit_depth: BitDepth::B16,
+                color_space: ColorSpace::LumaA,
+            },
+            ColorType::Rgb16 => Self {
+                bit_depth: BitDepth::B16,
+                color_space: ColorSpace::Rgb,
+            },
+            ColorType::Rgba16 => Self {
+                bit_depth: BitDepth::B16,
+                color_space: ColorSpace::RgbA,
+            },
+            ColorType::Rgb32F => Self {
+                bit_depth: BitDepth::B32,
+                color_space: ColorSpace::Rgb,
+            },
+            ColorType::Rgba32F => Self {
+                bit_depth: BitDepth::B32,
+                color_space: ColorSpace::RgbA,
+            },
+            _ => Self::default(),
+        }
+    }
+}
