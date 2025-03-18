@@ -1,10 +1,8 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-use clap::ValueEnum;
 use image::{ColorType, DynamicImage};
 
-#[derive(Debug, Clone)]
 pub trait ColorData {
     fn color_info(&self) -> ColorInfo;
     fn color_type(&self) -> ColorType;
@@ -65,7 +63,7 @@ impl FromStr for BitDepth {
     }
 }
 
-#[derive(ValueEnum, Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum ColorSpace {
     Rgb,
     RgbA,
