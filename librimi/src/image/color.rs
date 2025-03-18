@@ -16,6 +16,7 @@ impl ColorData for ColorInfo {
         self.to_color_type()
     }
 }
+
 impl ColorData for ColorType {
     fn color_info(&self) -> ColorInfo {
         ColorInfo::from(*self)
