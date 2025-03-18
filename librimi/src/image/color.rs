@@ -80,6 +80,15 @@ impl Display for ColorSpace {
     }
 }
 
+impl Default for ColorInfo {
+    fn default() -> Self {
+        Self {
+            bit_depth: BitDepth::B8,
+            color_space: ColorSpace::Rgb,
+        }
+    }
+}
+
 impl ColorInfo {
     pub fn new(color_space: &ColorSpace, bit_depth: &BitDepth) -> Self {
         ColorInfo {
@@ -129,10 +138,7 @@ impl ColorInfo {
                 bit_depth: BitDepth::B32,
                 color_space: ColorSpace::RgbA,
             },
-            _ => ColorInfo {
-                bit_depth: BitDepth::B8,
-                color_space: ColorSpace::Unknown,
-            },
+            _ => ColorInfo::default(),
         }
     }
     pub fn convert_image(&self, image: DynamicImage) -> DynamicImage {
