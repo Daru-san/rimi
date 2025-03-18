@@ -1,3 +1,6 @@
+use std::error::Error;
+use std::fmt::Display;
+
 use anyhow::{Error, Result};
 use image::DynamicImage;
 

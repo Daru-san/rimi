@@ -207,6 +207,7 @@ fn process(
                     &format!("{:?}", task.image_path.file_name().as_slice()),
                 )
                 .unwrap_or(String::from("Error creating message"));
+
                 message_tx.send(TaskState::Process(message)).unwrap_or(());
                 task.image = Some(image);
                 Some(task.to_owned())
@@ -230,16 +231,28 @@ fn process(
 fn save_images(tasks: &mut Vec<ImageTask>, message_tx: &Sender<TaskState>, args: &ImageArgs) {
     let destination = args.output.clone().unwrap_or(PathBuf::from("."));
     let acc = AtomicUsize::new(0);
-    let paths: Vec<PathBuf> = create_paths(
-        tasks
-            .par_iter()
-            .map(|task| task.image_path.to_path_buf())
-            .collect(),
-        destination,
-        args.name_expr.as_deref(),
-        args.format.as_deref(),
-    )
-    .unwrap();
+
+    let create_paths = || {
+        create_paths(
+            tasks
+                .par_iter()
+                .map(|task| task.image_path.to_path_buf())
+                .collect(),
+            destination,
+            args.name_expr.as_deref(),
+            args.format.as_deref(),
+        )
+    };
+
+    let paths = match create_paths() {
+        Ok(paths) => paths,
+        Err(e) => {
+            message_tx.send(TaskState::Failure(e)).unwrap_or(());
+            message_tx.send(TaskState::Complete(1)).unwrap_or(());
+            return;
+        }
+    };
+
     let tasks = tasks.par_drain(..);
     let tasks = tasks.zip(paths);
     tasks.for_each_with(message_tx, |message_tx, (task, path)| {
