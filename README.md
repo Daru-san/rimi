@@ -2,6 +2,11 @@
 
 A fast CLI image manipulation tool, written for speed in rust.
 
+> [!NOTE]
+> This project is undergoing a massive amount of refactoring.
+> I am changing the purpose of rimi.
+> Unstable as of now.
+
 ## Features
 
 ### Features as of v0.1.6
