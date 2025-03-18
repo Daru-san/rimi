@@ -5,6 +5,29 @@ use clap::ValueEnum;
 use image::{ColorType, DynamicImage};
 
 #[derive(Debug, Clone)]
+pub trait ColorData {
+    fn color_info(&self) -> ColorInfo;
+    fn color_type(&self) -> ColorType;
+}
+
+impl ColorData for ColorInfo {
+    fn color_info(&self) -> ColorInfo {
+        *self
+    }
+    fn color_type(&self) -> ColorType {
+        self.to_color_type()
+    }
+}
+impl ColorData for ColorType {
+    fn color_info(&self) -> ColorInfo {
+        ColorInfo::from(*self)
+    }
+    fn color_type(&self) -> ColorType {
+        *self
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct ColorInfo {
     pub bit_depth: BitDepth,
     pub color_space: ColorSpace,
