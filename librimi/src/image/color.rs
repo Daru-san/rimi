@@ -142,8 +142,8 @@ impl ColorInfo {
         }
     }
     pub fn convert_image(&self, image: DynamicImage) -> DynamicImage {
-        let color_space = self.to_color_type();
-        match color_space {
+        let color_type = self.to_color_type();
+        match color_type {
             ColorType::L8 => DynamicImage::ImageLuma8(image.to_luma8()),
             ColorType::La8 => DynamicImage::ImageLumaA8(image.to_luma_alpha8()),
             ColorType::L16 => DynamicImage::ImageLuma16(image.to_luma16()),
