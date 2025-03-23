@@ -1,11 +1,13 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-use image::{ColorType, DynamicImage};
+use image::{ColorType, DynamicImage, ExtendedColorType};
 
+/// Unified trait representing color data
 pub trait ColorData {
     fn color_info(&self) -> ColorInfo;
     fn color_type(&self) -> ColorType;
+    fn color_type_extended(&self) -> ExtendedColorType;
 }
 
 impl ColorData for ColorInfo {
@@ -15,6 +17,9 @@ impl ColorData for ColorInfo {
     fn color_type(&self) -> ColorType {
         self.to_color_type()
     }
+    fn color_type_extended(&self) -> ExtendedColorType {
+        self.to_color_type().into()
+    }
 }
 
 impl ColorData for ColorType {
@@ -22,6 +27,21 @@ impl ColorData for ColorType {
         ColorInfo::from(*self)
     }
     fn color_type(&self) -> ColorType {
+        *self
+    }
+    fn color_type_extended(&self) -> ExtendedColorType {
+        (*self).into()
+    }
+}
+
+impl ColorData for ExtendedColorType {
+    fn color_info(&self) -> ColorInfo {
+        ColorInfo::default()
+    }
+    fn color_type(&self) -> ColorType {
+        ColorInfo::default().color_type()
+    }
+    fn color_type_extended(&self) -> ExtendedColorType {
         *self
     }
 }
