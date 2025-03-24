@@ -1,6 +1,9 @@
-use image::{ColorType, DynamicImage, PixelWithColorType};
+use image::DynamicImage;
+use image::imageops::FilterType;
 
 use super::color::ColorData;
+use super::pixels::PixelConvert;
+use rand::random_range;
 
 /// Randomizer
 ///
@@ -48,24 +51,49 @@ pub trait Randomizer: Sized + Clone {
 /// ImageBuffers by using DynamicImage::from(buffer), which removes the need to implement
 /// this for every image type manually
 impl Randomizer for DynamicImage {
-    fn randomize_all(&self) -> Result<String, RandomizerError> {}
-    fn randomize_hue(&self) -> Result<String, RandomizerError> {}
-    fn randomize_saturation(&self) -> Result<String, RandomizerError> {}
+    fn randomize_all(&self) -> Result<Self, RandomizerError> {
+        Ok(self.clone())
+    }
+
+    fn randomize_hue(&self) -> Result<Self, RandomizerError> {
+        let rotation = random_range(0..=360);
+        let image = self.huerotate(rotation);
+        Ok(image)
+    }
+
+    fn randomize_saturation(&self) -> Result<Self, RandomizerError> {
+        Ok(self.clone())
+    }
+
     fn randomize_size(
         &self,
         min_width: u32,
         min_height: u32,
         max_width: u32,
         max_height: u32,
-    ) -> Result<String, RandomizerError> {
+        filter_type: Option<FilterType>,
+    ) -> Result<Self, RandomizerError> {
+        let height = random_range(min_height..=max_height);
+        let width = random_range(min_width..=max_width);
+        let image = match filter_type {
+            Some(ftype) => self.resize_exact(width, height, ftype),
+            None => self.resize_exact(width, height, FilterType::Nearest),
+        };
+        Ok(image)
     }
 
-    fn randomize_color<X>(&self, color_data: X) -> Result<String, RandomizerError>
+    fn randomize_color<X>(&self, color_data: X) -> Result<Self, RandomizerError>
     where
         X: ColorData,
     {
-        let data = color_data.color_info();
+        let info = color_data.color_info();
+        let image = info.convert_image(self.clone());
+        match self.convert_color_to(info) {
+            _ => unimplemented!(),
+        }
+        Ok(self.clone())
     }
 }
 
+#[derive(Debug)]
 pub enum RandomizerError {}
