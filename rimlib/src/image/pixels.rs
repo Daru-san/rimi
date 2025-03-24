@@ -2,7 +2,7 @@ use image::{ColorType, DynamicImage, GenericImage, ImageBuffer, Luma, LumaA, Rgb
 
 use super::color::ColorData;
 
-enum ImageBufferData {
+pub enum ImageBufferData {
     Rgb8(ImageBuffer<Rgb<u8>, Vec<u8>>),
     Rgba8(ImageBuffer<Rgba<u8>, Vec<u8>>),
     Rgb16(ImageBuffer<Rgba<u16>, Vec<u16>>),
