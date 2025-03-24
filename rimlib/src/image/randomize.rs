@@ -1,8 +1,9 @@
 use image::DynamicImage;
 use image::imageops::FilterType;
+use rayon::iter::{ParallelBridge, ParallelIterator};
 
 use super::color::ColorData;
-use super::pixels::PixelConvert;
+use super::pixels::{ImageBufferData, PixelConvert};
 use rand::random_range;
 
 /// Randomizer
@@ -87,11 +88,142 @@ impl Randomizer for DynamicImage {
         X: ColorData,
     {
         let info = color_data.color_info();
+
         let image = info.convert_image(self.clone());
-        match self.convert_color_to(info) {
-            _ => unimplemented!(),
-        }
-        Ok(self.clone())
+
+        let image = match image.convert_color_to(info) {
+            ImageBufferData::Rgb8(mut buffer) => {
+                buffer.pixels_mut().par_bridge().for_each(|p| {
+                    let color = random_range(0x00..=0xFF);
+                    p[0] = color;
+
+                    let color = random_range(0x00..=0xFF);
+                    p[1] = color;
+
+                    let color = random_range(0x00..=0xFF);
+                    p[2] = color;
+                });
+                DynamicImage::from(buffer)
+            }
+            ImageBufferData::Rgba8(mut buffer) => {
+                buffer.pixels_mut().par_bridge().for_each(|p| {
+                    let color = random_range(0x00..=0xFF);
+                    p[0] = color;
+
+                    let color = random_range(0x00..=0xFF);
+                    p[1] = color;
+
+                    let color = random_range(0x00..=0xFF);
+                    p[2] = color;
+                });
+                DynamicImage::from(buffer)
+            }
+            ImageBufferData::Rgb16(mut buffer) => {
+                buffer.pixels_mut().par_bridge().for_each(|p| {
+                    let color = random_range(0x00..=0xFF);
+                    p[0] = color;
+
+                    let color = random_range(0x00..=0xFF);
+                    p[1] = color;
+
+                    let color = random_range(0x00..=0xFF);
+                    p[2] = color;
+                });
+                DynamicImage::from(buffer)
+            }
+            ImageBufferData::Rgba16(mut buffer) => {
+                buffer.pixels_mut().par_bridge().for_each(|p| {
+                    let color = random_range(0x00..=0xFF);
+                    p[0] = color;
+
+                    let color = random_range(0x00..=0xFF);
+                    p[1] = color;
+
+                    let color = random_range(0x00..=0xFF);
+                    p[2] = color;
+                });
+                DynamicImage::from(buffer)
+            }
+            ImageBufferData::Rgb32f(mut buffer) => {
+                buffer.pixels_mut().par_bridge().for_each(|p| {
+                    let color: f32 = random_range(0.00..=(size_of::<u8>() as f32));
+                    p[0] = color;
+
+                    let color: f32 = random_range(0.00..=(size_of::<u8>() as f32));
+                    p[1] = color;
+
+                    let color: f32 = random_range(0.00..=(size_of::<u8>() as f32));
+                    p[2] = color;
+                });
+                DynamicImage::from(buffer)
+            }
+            ImageBufferData::Rgba32f(mut buffer) => {
+                buffer.pixels_mut().par_bridge().for_each(|p| {
+                    let color: f32 = random_range(0.00..=(size_of::<u8>() as f32));
+                    p[0] = color;
+
+                    let color: f32 = random_range(0.00..=(size_of::<u8>() as f32));
+                    p[1] = color;
+
+                    let color: f32 = random_range(0.00..=(size_of::<u8>() as f32));
+                    p[2] = color;
+                });
+                DynamicImage::from(buffer)
+            }
+            ImageBufferData::Luma8(mut buffer) => {
+                buffer.pixels_mut().par_bridge().for_each(|p| {
+                    let color = random_range(0x00..=0xFF);
+                    p[0] = color;
+
+                    let color = random_range(0x00..=0xFF);
+                    p[1] = color;
+
+                    let color = random_range(0x00..=0xFF);
+                    p[2] = color;
+                });
+                DynamicImage::from(buffer)
+            }
+            ImageBufferData::LumaA8(mut buffer) => {
+                buffer.pixels_mut().par_bridge().for_each(|p| {
+                    let color = random_range(0x00..=0xFF);
+                    p[0] = color;
+
+                    let color = random_range(0x00..=0xFF);
+                    p[1] = color;
+
+                    let color = random_range(0x00..=0xFF);
+                    p[2] = color;
+                });
+                DynamicImage::from(buffer)
+            }
+            ImageBufferData::Luma16(mut buffer) => {
+                buffer.pixels_mut().par_bridge().for_each(|p| {
+                    let color = random_range(0x00..=0xFF);
+                    p[0] = color;
+
+                    let color = random_range(0x00..=0xFF);
+                    p[1] = color;
+
+                    let color = random_range(0x00..=0xFF);
+                    p[2] = color;
+                });
+                DynamicImage::from(buffer)
+            }
+            ImageBufferData::LumaA16(mut buffer) => {
+                buffer.pixels_mut().par_bridge().for_each(|p| {
+                    let color = random_range(0x00..=0xFF);
+                    p[0] = color;
+
+                    let color = random_range(0x00..=0xFF);
+                    p[1] = color;
+
+                    let color = random_range(0x00..=0xFF);
+                    p[2] = color;
+                });
+                DynamicImage::from(buffer)
+            }
+        };
+        Ok(image)
     }
 }
 
