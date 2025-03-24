@@ -31,7 +31,10 @@ fn mass_write() {
     for _ in 1..10 {
         let image = DynamicImage::new_luma_a16(1920, 1080);
 
-        image.randomize();
+        let image = match image.randomize_all() {
+            Ok(resulting) => resulting,
+            Err(e) => panic!("{e:?}"),
+        };
 
         images.push(image);
     }
