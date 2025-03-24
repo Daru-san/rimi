@@ -9,6 +9,22 @@ use ::image::DynamicImage;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 #[test]
+fn resize() {
+    let mut images = Vec::<DynamicImage>::new();
+
+    for _ in 1..10 {
+        let image = DynamicImage::new_luma_a16(1920, 1080);
+
+        let image = match image.randomize_size(480, 270, 3840, 2160, None) {
+            Ok(resulting) => resulting,
+            Err(e) => panic!("{e:?}"),
+        };
+
+        images.push(image);
+    }
+}
+
+#[test]
 fn mass_write() {
     let mut images: Vec<DynamicImage> = Vec::new();
 
