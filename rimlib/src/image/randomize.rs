@@ -19,15 +19,15 @@ pub trait Randomizer: Sized + Clone {
     /// Acts as a combination of all of the other functions
     ///
     /// Returns a new instance of the image
-    fn randomize_all(&self) -> Result<Self, RandomizerError>;
+    fn randomize_all(&self) -> Self;
 
     /// Changes the hue of the image based on random generated values
     /// Returns a new instance of the image
-    fn randomize_hue(&self) -> Result<Self, RandomizerError>;
+    fn randomize_hue(&self) -> Self;
 
     /// Changes the saturation of the image based on random generated values
     /// Returns a new instance of the image
-    fn randomize_saturation(&self) -> Result<Self, RandomizerError>;
+    fn randomize_saturation(&self) -> Self;
 
     /// Changes the size to one random size of range between provided range parameters
     /// Returns a new instance of the image
@@ -38,12 +38,12 @@ pub trait Randomizer: Sized + Clone {
         max_width: u32,
         max_height: u32,
         filter_type: Option<FilterType>,
-    ) -> Result<Self, RandomizerError>;
+    ) -> Self;
 
     /// Changes the coloration of the image based on a color type provided as a parameter
     /// Color types and bit-depths are not changed within this function.
     /// Returns a new instance of the image
-    fn randomize_color<X>(&self, color_type: X) -> Result<Self, RandomizerError>
+    fn randomize_color<X>(&self, color_type: X) -> Self
     where
         X: ColorData;
 }
@@ -52,18 +52,17 @@ pub trait Randomizer: Sized + Clone {
 /// ImageBuffers by using DynamicImage::from(buffer), which removes the need to implement
 /// this for every image type manually
 impl Randomizer for DynamicImage {
-    fn randomize_all(&self) -> Result<Self, RandomizerError> {
-        Ok(self.clone())
+    fn randomize_all(&self) -> Self {
+        self.clone()
     }
 
-    fn randomize_hue(&self) -> Result<Self, RandomizerError> {
+    fn randomize_hue(&self) -> Self {
         let rotation = random_range(0..=360);
-        let image = self.huerotate(rotation);
-        Ok(image)
+        self.huerotate(rotation)
     }
 
-    fn randomize_saturation(&self) -> Result<Self, RandomizerError> {
-        Ok(self.clone())
+    fn randomize_saturation(&self) -> Self {
+        self.clone()
     }
 
     fn randomize_size(
@@ -73,17 +72,16 @@ impl Randomizer for DynamicImage {
         max_width: u32,
         max_height: u32,
         filter_type: Option<FilterType>,
-    ) -> Result<Self, RandomizerError> {
+    ) -> Self {
         let height = random_range(min_height..=max_height);
         let width = random_range(min_width..=max_width);
-        let image = match filter_type {
+        match filter_type {
             Some(ftype) => self.resize_exact(width, height, ftype),
             None => self.resize_exact(width, height, FilterType::Nearest),
-        };
-        Ok(image)
+        }
     }
 
-    fn randomize_color<X>(&self, color_data: X) -> Result<Self, RandomizerError>
+    fn randomize_color<X>(&self, color_data: X) -> Self
     where
         X: ColorData,
     {
@@ -91,7 +89,7 @@ impl Randomizer for DynamicImage {
 
         let image = info.convert_image(self.clone());
 
-        let image = match image.convert_color_to(info) {
+        match image.convert_color_to(info) {
             ImageBufferData::Rgb8(mut buffer) => {
                 buffer.pixels_mut().par_bridge().for_each(|p| {
                     let color = random_range(0x00..=0xFF);
@@ -222,8 +220,7 @@ impl Randomizer for DynamicImage {
                 });
                 DynamicImage::from(buffer)
             }
-        };
-        Ok(image)
+        }
     }
 }
 
