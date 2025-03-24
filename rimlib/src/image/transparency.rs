@@ -1,3 +1,4 @@
+use super::color::ColorInfo;
 use image::DynamicImage;
 use rayon::iter::ParallelBridge;
 
