@@ -61,7 +61,11 @@ pub enum BitDepth {
 
 impl Display for BitDepth {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)
+        match self {
+            BitDepth::B8 => write!(f,"8"),
+            BitDepth::B16 => write!(f,"16"),
+            BitDepth::B32 => write!(f,"32")
+        }
     }
 }
 
