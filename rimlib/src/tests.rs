@@ -1,11 +1,12 @@
 use std::{
     io::{BufWriter, Cursor},
     sync::mpsc::channel,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
+use crate::image::transparency::Transparenize;
 use crate::image::randomize::Randomizer;
-use ::image::DynamicImage;
+use image::{DynamicImage, ColorType};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 #[test]
@@ -13,12 +14,12 @@ fn resize() {
     let mut images = Vec::<DynamicImage>::new();
 
     for _ in 1..10 {
-        let image = DynamicImage::new_luma_a16(1920, 1080);
+        let image = {
+            let i = DynamicImage::new_luma_a16(1920, 1080);
 
-        let image = match image.randomize_size(480, 270, 3840, 2160, None) {
-            Ok(resulting) => resulting,
-            Err(e) => panic!("{e:?}"),
+            i.randomize_size(480, 270, 3840, 2160, None)
         };
+
 
         images.push(image);
     }
@@ -29,12 +30,12 @@ fn mass_write() {
     let mut images: Vec<DynamicImage> = Vec::new();
 
     for _ in 1..10 {
-        let image = DynamicImage::new_luma_a16(1920, 1080);
+        let image = {
+            let i = DynamicImage::new_luma_a16(1920, 1080);
 
-        let image = match image.randomize_all() {
-            Ok(resulting) => resulting,
-            Err(e) => panic!("{e:?}"),
+            i.randomize_all()
         };
+
 
         images.push(image);
     }
@@ -50,13 +51,12 @@ fn mass_write() {
                 match image.write_to(&mut writer, ::image::ImageFormat::Avif) {
                     Ok(_) => {
                         let end = Instant::now().duration_since(begin);
-                        let dur = Duration::from(end);
                         tx.send(format!(
                             r#"
                                 Image written successfully!
                                 Took {} seconds
                             "#,
-                            dur.as_secs()
+                            end.as_secs()
                         ))
                         .unwrap_or_default();
                     }
@@ -72,4 +72,49 @@ fn mass_write() {
             println!("{result:?}");
         });
     });
+}
+
+#[test]
+fn randomize_test() {
+    let mut images: Vec<DynamicImage> = Vec::new();
+
+    for _ in 1..10 {
+        let image = {
+            let i = DynamicImage::new_luma_a16(1920, 1080);
+
+            i.randomize_all()
+        };
+
+        images.push(image);
+    }
+}
+
+#[test]
+fn multi_random() {
+    let mut images: Vec<DynamicImage> = Vec::new();
+
+    for _ in 1..10 {
+        let image = {
+            let i = DynamicImage::new_luma_a16(1920, 1080);
+
+            i.randomize_hue().randomize_size(640, 360, 15360, 8640, None)
+        };
+
+        images.push(image);
+    }
+}
+
+#[test]
+fn transparency() {
+    let mut images = Vec::<DynamicImage>::new();
+
+    for _ in 1..10 {
+        let image = {
+            let i = DynamicImage::new_rgba16(1920, 1080);
+
+            i.randomize_color(ColorType::Rgba16).transparentize()
+        };
+
+        images.push(image);
+    }
 }
