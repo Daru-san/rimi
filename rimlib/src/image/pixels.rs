@@ -1,4 +1,4 @@
-use image::{ColorType, DynamicImage, GenericImage, ImageBuffer, Luma, LumaA, Rgb, Rgba};
+use image::{ColorType, DynamicImage, ImageBuffer, Luma, LumaA, Rgb, Rgba};
 
 use super::color::ColorData;
 
