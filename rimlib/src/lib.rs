@@ -1,5 +1,5 @@
 // mod backend;
-pub(crate) mod image;
+pub mod image;
 
 #[cfg(test)]
 mod tests;
