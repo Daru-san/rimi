@@ -4,4 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0.97"
+clap = "4.5.32"
+crossbeam-channel = "0.5.14"
+image = "0.25.6"
+rayon = "1.10.0"
 rimlib = { version = "0.1.0", path = "../rimlib" }
