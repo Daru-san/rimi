@@ -86,7 +86,7 @@ impl ImageGallery {
         .spacing(10)
         .wrap();
 
-        let content: Element<'_, Message> = container(center(gallery))
+        let content: Element<'_, Message> = container(scrollable(center(gallery)))
             .padding(10)
             .into();
 
