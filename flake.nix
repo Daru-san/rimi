@@ -20,6 +20,26 @@
         toolchain = pkgs.rustPlatform;
         lib = nixpkgs.lib;
         cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
+
+        uiDeps = with pkgs; [
+          wayland
+
+          libxkbcommon
+          xorg.xkbevd
+          xorg.xkbutils
+          xorg.xkbprint
+          xorg.libXrandr
+          xorg.libXinerama
+          xorg.libX11
+          xorg.libXrender
+          xorg.libXext
+          xorg.libXcursor
+          xorg.libXi
+          xorg.libxcb
+          libGL
+          glfw
+          glfw-wayland
+        ];
       in
       rec {
         packages = {
@@ -70,8 +90,10 @@
             git-cliff
             cargo-dist
             cargo-profiler
-          ];
+          ] ++ uiDeps;
           RUST_SRC_PATH = "${toolchain.rustLibSrc}";
+
+          LD_LIBRARY_PATH = lib.makeLibraryPath uiDeps;
         };
       }
     );
