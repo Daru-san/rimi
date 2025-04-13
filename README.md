@@ -1,5 +1,8 @@
 # Rimi
 
+> [!NOTE]
+> Development has been moved to codeberg at https://codeberg.org/Daru-san/rimi
+
 A fast CLI image manipulation tool, written for speed in rust.
 
 > [!NOTE]
